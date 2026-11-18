@@ -160,10 +160,13 @@ function startGame(fromSave) {
 
 document.getElementById('start-btn').addEventListener('click', () => startGame(false));
 const continueBtn = document.getElementById('continue-btn');
-if (loadSave()) {
-  continueBtn.style.display = 'inline-block';
-  continueBtn.addEventListener('click', () => startGame(true));
+function refreshContinueButton() {
+  // Show Continue whenever a save exists. Checked live, not just at
+  // page load — a save made in this session must show it at once.
+  continueBtn.style.display = loadSave() ? 'inline-block' : 'none';
 }
+continueBtn.addEventListener('click', () => startGame(true));
+refreshContinueButton();
 document.getElementById('resume-btn').addEventListener('click', () => {
   G.mode = 'play';
   pauseScreen.style.display = 'none';
@@ -177,6 +180,7 @@ document.getElementById('restart-mission-btn').addEventListener('click', () => {
 });
 document.getElementById('quit-to-start-btn').addEventListener('click', () => {
   G.save();
+  refreshContinueButton();
   G.mode = 'start';
   pauseScreen.style.display = 'none';
   startScreen.style.display = 'flex';

@@ -62,3 +62,43 @@
     files + 1 vendored; game/ 19 entries, 769,646 B; no http/https refs
     anywhere in game/. out/ and out2/ removed after the check.
   - Added serve.ts (own-words tiny static server) and LESSONS.md.
+
+## Cycle 2 — 2026-11-18 (Continue fix + held-key verification)
+- Playtest (browser, live Pages URL) confirmed the game plays and is
+  ready to submit, with 2 notes: (a) Continue button missing right
+  after "Save & quit to menu" until a reload; (b) held-WASD unverified
+  (browser can only tap keys, game polls isDown per frame).
+- ROOT CAUSE (a): main.js checked loadSave() and attached the Continue
+  click handler only once at page load. A save made in the session was
+  never re-checked, so Continue stayed hidden until a reload.
+- FIX (a): new refreshContinueButton() — shows Continue whenever a save
+  exists, checked live; click handler attached unconditionally; called
+  at page load AND in the "Save & quit to menu" handler after G.save().
+  Only game/src/main.js changed (11,120 → 11,347 B, +227 B). No change
+  to save/load logic or gameplay. Camera pitch + punch/wanted notes
+  are OUT OF SCOPE and untouched.
+- VERIFIED (a) with Playwright + CDP (headless Chromium, fresh profile,
+  no save at load): Continue hidden at load; Start → Esc → Save & quit
+  to menu → Continue VISIBLE immediately (inline-block, start screen
+  flex, no reload) → click Continue → mode 'play', position restored
+  (1,120) vs saved (0,120), restore distance 1 (integer rounding).
+  The save/load mechanism itself was already proven by the browser
+  playtest (reload → Continue restored HP 100, $150, mission, position
+  exactly); this test proves the BUTTON now appears and triggers it.
+  PASS.
+- VERIFIED (b) with Playwright keyboard.down (HELD key, not tap):
+  on foot (?shot=foot): held W 30 s wall → 11 units in 2.4 s game time
+  (~4.6 u/s vs 5 u/s walk speed). Driving (?shot=drive): held W 30 s
+  wall → speed 12.1 → 29 (clamp 30), 39 units in 1.7 s game time.
+  Control: 5 quick taps moved ~1 unit (rounding noise); coasting
+  without input decays speed (13 → 11.3). Held key WORKS; the
+  playtest's tap-only input was the limitation, not the game.
+  Caveat: headless SwiftShader runs ~1.6 fps, so game time advances
+  ~0.08 s per wall second — movements are small in absolute terms but
+  exactly proportional to game time and match the designed physics.
+- Only console error in the runs: favicon.ico 404 (no favicon file;
+  benign, not a game asset).
+- main.ts re-verified after the fix: two runs byte-identical
+  (diff -r clean); dossier 738,363 B (< 1.5 MiB); game/ 19 entries,
+  769,873 B. Screenshots unchanged (headless JPGs still the submitted
+  set); main.ts / dossier / screenshots otherwise untouched.

@@ -1,8 +1,8 @@
 # SOLMAR — gta6-01 checklist (Cycle 1 — DONE 2026-11-18)
 
 ## MUST (gate + judge criterion 1)
-- [x] game/ static files only, no network refs, index.html ≤ 1 MiB (7,028 B), game/ ≤ 993 files / 48 MiB (19 entries, 769,646 B)
-- [x] main.ts (Node 22 stdlib only) copies game/ + screenshots/ to /output, writes dossier.json via buildDossier (text 163840, shots max 4 / 262144 B, game 993 / 48 MiB); deterministic (two runs byte-identical, diff -r clean)
+- [x] game/ static files only, no network refs, index.html ≤ 1 MiB (7,028 B), game/ ≤ 993 files / 48 MiB (19 entries, 769,873 B after Cycle 2)
+- [x] main.ts (Node 22 stdlib only) copies game/ + screenshots/ to /output, writes dossier.json via buildDossier (text 163840, shots max 4 / 262144 B, game 993 / 48 MiB); deterministic (two runs byte-identical, diff -r clean; re-verified Cycle 2: dossier 738,363 B)
 - [x] 4 screenshots, each ≤ 256 KiB (110–129 KB), 1280×800 (long 1280, short 800), first by name = cover (1-chase.jpg); real headless-Chromium renders of this game, unedited
 - [x] .makefun/owner.json {"wallet": "5FGhpCb28E2Vq9d5DwMhKEBk3HoBpJHwDCKDtUb7YREV"}; LICENSE (MIT, kit copy)
 - [x] City explorable on foot AND by car (enter/exit with E, steal parked/traffic cars)
@@ -11,7 +11,7 @@
 - [x] Missions: 5-chapter story chain with waypoint + objective + reward
 - [x] Combat: punch (F) + pistol (click/Space), health
 - [x] HUD: health, money, wanted stars, minimap canvas, objective + distance, speed, clock, controls hint
-- [x] Start screen + pause (Esc) + busted/wasted screens; save/load via localStorage
+- [x] Start screen + pause (Esc) + busted/wasted screens; save/load via localStorage (Cycle 2: Continue now appears immediately after Save & quit — was only after reload)
 - [x] ?shot=foot|drive|chase|mission|start & ?seed= staged deterministic scenes, HUD + minimap visible in every shot
 - [x] All JS modules node --check clean; no http/https src in index.html; bare "three" only via import map
 
@@ -34,3 +34,12 @@
 - Bugs found by looking at frames and fixed: bad import (clamp from city.js), camera spawn 270 m from player (now snaps), camera inside building (pull-in), police slower than player + invisible (now faster, staged oncoming), park swallowing a road (mission spawn moved to road x=-128), per-frame ram damage (1.2 s cooldown), brief/toast text duplication, palm billboards.
 - main.ts: `mkdir -p out out2 && MAKEFUN_OUTPUT_DIR=out node main.ts && MAKEFUN_OUTPUT_DIR=out2 node main.ts && diff -r out out2` → identical. Dossier 738,132 B (< 1.5 MiB), text 99,890 chars (< 163,840 cap), 15 source files + 1 vendored.
 - NOT done by this builder (parent's job): push to arthosiu-cmd/gta6-01, browser playtest with real input, submit (needs Arie's approval).
+
+## Verification log (Cycle 2 — Continue fix + held-key, 2026-11-18)
+- Root cause (Continue): main.js checked loadSave() + attached the click handler only once at page load. Fixed with refreshContinueButton() (live check, unconditional listener, called at load + after Save & quit). Only game/src/main.js changed (11,120 → 11,347 B).
+- Playwright + CDP (headless Chromium, fresh profile): Continue hidden at load → Start → Esc → Save & quit → Continue VISIBLE immediately (no reload) → click → mode 'play', position restored (1,120) vs saved (0,120), distance 1 (rounding). PASS.
+- Held-key (keyboard.down, not tap): on foot held W 30 s wall → 11 units in 2.4 s game time (~4.6 u/s vs 5 u/s walk). Driving held W 30 s wall → speed 12.1 → 29 (clamp 30), 39 units in 1.7 s game time. Control: 5 taps ≈ 1 unit; coasting decays speed (13 → 11.3). Held key WORKS.
+- Caveat: headless SwiftShader ~1.6 fps, so game time advances ~0.08 s per wall second; movements are small in absolute terms but exactly proportional to game time and match the designed physics.
+- Only console error: favicon.ico 404 (no favicon file; benign).
+- main.ts re-verified: two runs byte-identical (diff -r clean); dossier 738,363 B; game/ 769,873 B. Screenshots unchanged.
+- NOT done by this builder (parent's job): push the Cycle 2 fix to GitHub, re-deploy Pages, submit (needs Arie's approval). Camera pitch + punch/wanted notes are OUT OF SCOPE and untouched.

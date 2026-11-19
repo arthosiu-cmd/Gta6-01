@@ -133,7 +133,12 @@ export function updateCamera(G, dt) {
   // Mouse orbit accumulates into camOrbit; the yaw damps toward
   // heading + PI + orbit, so the camera follows but lets you look around.
   G.camOrbit = clamp(G.camOrbit - G.input.mouseDX * 0.0032, -Math.PI, Math.PI);
-  G.camPitch = clamp(G.camPitch - G.input.mouseDY * 0.0022, -0.15, 0.7);
+  // Pitch is half as sensitive as before (0.0012, was 0.0022) and capped
+  // lower (0.5, was 0.7), so ordinary mouse movement no longer swings
+  // the camera top-down. When the mouse is still vertically, the pitch
+  // eases gently back to its default (0.25) instead of staying stuck.
+  G.camPitch = clamp(G.camPitch - G.input.mouseDY * 0.0012, -0.15, 0.5);
+  if (G.input.mouseDY === 0) G.camPitch = damp(G.camPitch, 0.25, 0.3, dt);
   const baseDist = p.onFoot ? 8 : 9;
   const height = 2.8 + G.camPitch * 5;
   // Pull the camera in when a building stands between it and the player,

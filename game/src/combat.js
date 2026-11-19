@@ -54,8 +54,13 @@ export function tryPunch(G) {
   G.audio.punch();
   const target = nearestTarget(G, 2.4);
   if (target) {
-    if (target.kind === 'ped') hurtPed(G, target.obj, 30, G.player.pos.x, G.player.pos.z);
-    else hurtCop(G, target.obj, 30);
+    // A punch that lands is an assault in broad daylight: it raises the
+    // wanted level like a gunshot does, unless the target already went
+    // down (hurtPed/hurtCop already raised it then) — no double-count.
+    let down = false;
+    if (target.kind === 'ped') down = hurtPed(G, target.obj, 30, G.player.pos.x, G.player.pos.z);
+    else down = hurtCop(G, target.obj, 30);
+    if (!down) G.addWanted(1, 'You assaulted someone — the police were called');
     scarePeds(G, G.player.pos.x, G.player.pos.z, 14);
     G.toast(target.kind === 'ped' ? 'You clocked a pedestrian!' : 'You hit a cop!');
   }

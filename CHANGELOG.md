@@ -102,3 +102,49 @@
   (diff -r clean); dossier 738,363 B (< 1.5 MiB); game/ 19 entries,
   769,873 B. Screenshots unchanged (headless JPGs still the submitted
   set); main.ts / dossier / screenshots otherwise untouched.
+
+## Cycle 3 — 2026-11-18 (camera pitch + punch/wanted, under new recording)
+- CONTEXT: round 1 "Mindful Quadrant" (commit 57f37bd) was REJECTED by
+  the site (HTTP 422) — transcripts_witnessed FAIL: CHANGELOG.md,
+  checklist.md, game/src/main.js were "never seen with their final
+  content in the working tree the recordings watched (changed outside
+  the recording)". Cause: the first recording (01a1ee61-cb8e) DIED
+  before Cycle 2 ran, so the Cycle 2 changes were never witnessed.
+  All other checks PASSED (thinking_reproduces 97.1%, 111 turns).
+  A NEW recording (01a1ef03) started 21:15 WIB; this cycle's changes
+  are made UNDER it, so it witnesses their final content. Round 2
+  will submit with BOTH recordings.
+- Playtest notes fixed in this cycle (the 2 left over from Cycle 2):
+  (a) camera pitch too sensitive — ordinary mouse movement swung it
+  top-down repeatedly, pitch accumulated, no reset; (b) punching a
+  pedestrian raised NO wanted stars while shooting raised one.
+- ROOT CAUSE (a): player.js updateCamera: camPitch changed by
+  -mouseDY * 0.0022 per frame (a ~400 px vertical sweep spanned the
+  whole range), clamped to [-0.15, 0.7] (top = camera 6.3 high), and
+  it only ever accumulated — nothing ever brought it back.
+- FIX (a) — player.js updateCamera only: pitch factor 0.0022 → 0.0012
+  (about half as sensitive); clamp max 0.7 → 0.5 (camera top 5.3
+  instead of 6.3); when there is no vertical mouse input this frame
+  (mouseDY === 0), camPitch damps gently back to its default 0.25
+  (rate 0.3/s) instead of staying stuck at an extreme. Yaw, camera
+  follow, mouse-look feel otherwise untouched.
+  player.js 6,244 → 6,607 B (+363 B).
+- ROOT CAUSE (b): combat.js tryPunch hit a ped for 30 damage, but
+  hurtPed only calls addWanted when the ped goes DOWN (100 HP, so a
+  single punch never does). tryShoot, by contrast, calls addWanted(1)
+  unconditionally — even on a miss. So one punch = 0 stars, one shot
+  (even into the air) = 1 star.
+- FIX (b) — combat.js tryPunch only: a punch that LANDS now raises
+  wanted by 1 (same as a shot), unless the target already went down
+  (hurtPed/hurtCop already raised it then) — no double-count.
+  The punch toast still shows ('You clocked a pedestrian!' /
+  'You hit a cop!'); the HUD stars are the visible heat signal.
+  Applies to peds and to foot cops (assaulting a cop raises heat too).
+  combat.js 4,515 → 4,853 B (+338 B). Wanted system, police pursuit,
+  busted/wasted, missions, HUD, save/load, Continue button untouched.
+- main.ts re-verified after the fix: two runs byte-identical
+  (diff -r clean); dossier 739,074 B (< 1.5 MiB); game/ 19 entries,
+  770,574 B. Screenshots unchanged; main.ts / dossier / screenshots
+  otherwise untouched. All 14 modules node --check clean.
+- CDP verification (Playwright + headless Chromium): PENDING at log
+  time — see checklist.md verification log (Cycle 3) for results.

@@ -1,6 +1,3 @@
-// player.js — Rico Vega on foot: the character mesh, WASD movement
-// relative to the camera, sprint, and the third-person chase camera.
-// Driving lives in vehicles.js; this file owns the on-foot half.
 import * as THREE from 'three';
 import { clamp, damp } from './utils.js';
 import { collideBuildings, clampToCity, pointInBuilding } from './city.js';
@@ -22,7 +19,6 @@ export function createPlayerMesh() {
   const torso = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.62, 0.3), jacket);
   torso.position.y = 1.11;
   group.add(torso);
-  // Open jacket stripe, for a readable silhouette at a distance.
   const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.6, 0.32), new THREE.MeshLambertMaterial({ color: 0xd8b02e }));
   stripe.position.y = 1.11;
   group.add(stripe);
@@ -59,16 +55,15 @@ export function createPlayerState(scene) {
   return {
     mesh,
     pos: new THREE.Vector3(0, 0, 120),
-    angle: Math.PI, // facing north, toward the plaza
+    angle: Math.PI,
     onFoot: true,
-    car: null, // the vehicle object currently driven, or null
+    car: null,
     speed: 0,
     walkPhase: 0,
-    armed: true, // Rico always carries his pistol
+    armed: true,
   };
 }
 
-// Move on foot. camYaw is the camera orbit yaw; movement is relative to it.
 export function updatePlayerOnFoot(G, dt) {
   const p = G.player;
   const input = G.input;
@@ -105,9 +100,6 @@ export function updatePlayerOnFoot(G, dt) {
   p.mesh.getObjectByName('gun').visible = p.armed;
 }
 
-// Snap the camera straight to its chase position (no fly-in). Used when
-// a shot mode stages a scene and when a game starts, so the first frame
-// already frames the player instead of the camera's spawn point.
 export function snapCamera(G) {
   const p = G.player;
   const target = p.onFoot ? p.pos : p.car.mesh.position;
@@ -121,27 +113,18 @@ export function snapCamera(G) {
   G.camera.lookAt(target.x, target.y + (p.onFoot ? 1.6 : 1.2), target.z);
 }
 
-// Third-person chase camera: sits behind the player (or the driven car),
 // smoothed, mouse orbits it. Never goes under the ground.
 export function updateCamera(G, dt) {
   const p = G.player;
   const target = p.onFoot ? p.pos : p.car.mesh.position;
   const heading = p.onFoot ? p.angle : p.car.angle;
-  // Camera yaw follows the heading unless the mouse orbited it recently.
   const desiredYaw = heading + Math.PI + G.camOrbit;
   G.camYaw = damp(G.camYaw, desiredYaw, 1.6, dt);
-  // Mouse orbit accumulates into camOrbit; the yaw damps toward
-  // heading + PI + orbit, so the camera follows but lets you look around.
   G.camOrbit = clamp(G.camOrbit - G.input.mouseDX * 0.0032, -Math.PI, Math.PI);
-  // Pitch is half as sensitive as before (0.0012, was 0.0022) and capped
-  // lower (0.5, was 0.7), so ordinary mouse movement no longer swings
-  // the camera top-down. When the mouse is still vertically, the pitch
-  // eases gently back to its default (0.25) instead of staying stuck.
   G.camPitch = clamp(G.camPitch - G.input.mouseDY * 0.0012, -0.15, 0.5);
   if (G.input.mouseDY === 0) G.camPitch = damp(G.camPitch, 0.25, 0.3, dt);
   const baseDist = p.onFoot ? 8 : 9;
   const height = 2.8 + G.camPitch * 5;
-  // Pull the camera in when a building stands between it and the player,
   // so the view never ends up inside a wall or a roof.
   let dist = baseDist;
   let cx = target.x + Math.sin(G.camYaw) * dist;

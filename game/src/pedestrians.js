@@ -1,6 +1,3 @@
-// pedestrians.js — the people of Solmar: walkers on the sidewalks who
-// stroll, cross at corners, and flee when a punch, a gunshot or a
-// wanted player scares them. Some are fare customers (see missions.js).
 import * as THREE from 'three';
 import { ROAD_COORDS, collideBuildings, clampToCity } from './city.js';
 import { clamp, dist2D } from './utils.js';
@@ -58,7 +55,7 @@ export function spawnPedestrians(G, count = 24) {
       target: randomSidewalkTarget(G.rng),
       speed: G.rng.range(1.0, 1.8),
       walkPhase: G.rng.range(0, 6),
-      state: 'walk', // 'walk' | 'flee' | 'down' | 'fare' | 'riding'
+      state: 'walk',
       fleeTimer: 0,
       fleeFrom: null,
       health: 100,
@@ -139,13 +136,13 @@ export function updatePedestrians(G, dt) {
   }
 }
 
-// Damage a pedestrian (punch or bullet). Returns true if they went down.
 export function hurtPed(G, ped, damage, fromX, fromZ) {
   ped.health -= damage;
   if (ped.health <= 0) {
     ped.state = 'down';
     ped.downTimer = 6;
-    G.addWanted(1, 'A pedestrian went down — the city saw it');
+    const isHunt = G.missions && G.missions.hunt && G.missions.hunt.ped === ped;
+    if (!isHunt) G.addWanted(1, 'A pedestrian went down — the city saw it');
     return true;
   }
   ped.state = 'flee';

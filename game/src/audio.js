@@ -1,6 +1,3 @@
-// audio.js — fully procedural WebAudio for Solmar. No audio files:
-// engine hum follows speed, the siren is two-tone, gunshots and punches
-// are filtered noise, pickups and missions are sine jingles, and a quiet
 // chord-pad loop plays as ambient music. M toggles mute.
 export function createAudio() {
   const audio = {
@@ -25,7 +22,6 @@ export function createAudio() {
       audio.master = audio.ctx.createGain();
       audio.master.gain.value = audio.muted ? 0 : 0.5;
       audio.master.connect(audio.ctx.destination);
-      // Engine: two detuned saws through a lowpass, gain by speed.
       audio.engineOsc = audio.ctx.createOscillator();
       audio.engineOsc.type = 'sawtooth';
       audio.engineOsc.frequency.value = 55;
@@ -54,7 +50,7 @@ export function createAudio() {
       audio.sirenOsc.start();
       audio.ready = true;
     } catch (err) {
-      audio.ready = false; // no audio device: the game still plays silent
+      audio.ready = false;
     }
   };
 
@@ -65,7 +61,6 @@ export function createAudio() {
     }
   };
 
-  // Called every frame: speed in m/s, 0 on foot; siren 0..1 by police heat.
   audio.update = (speed, sirenLevel, dt) => {
     if (!audio.ready) return;
     if (audio.ctx.state === 'suspended') audio.ctx.resume();
@@ -76,7 +71,6 @@ export function createAudio() {
     const tone = (Math.floor(t * 1.6) % 2 === 0) ? 720 : 980;
     audio.sirenOsc.frequency.setTargetAtTime(tone, t, 0.03);
     audio.sirenGain.gain.setTargetAtTime(sirenLevel * 0.045, t, 0.2);
-    // Ambient music: a slow Am–F–C–G pad, one chord every 4 seconds.
     audio.musicTimer -= dt;
     if (audio.musicTimer <= 0) {
       audio.musicTimer = 4;

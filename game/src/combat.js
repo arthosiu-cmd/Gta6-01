@@ -1,6 +1,3 @@
-// combat.js — Rico's fists and pistol. Punch (F) hits the nearest person
-// in front; shoot (click / Space) is a hitscan shot toward the camera
-// centre with a muzzle flash, tracer line and a scare radius.
 import * as THREE from 'three';
 import { hurtPed, scarePeds } from './pedestrians.js';
 import { hurtCop } from './police.js';
@@ -22,7 +19,6 @@ export function createCombatState(scene) {
   };
 }
 
-// Nearest living person (ped or foot cop) within range and in front.
 function nearestTarget(G, range) {
   const p = G.player.pos;
   const fx = Math.sin(G.player.angle), fz = Math.cos(G.player.angle);
@@ -54,15 +50,16 @@ export function tryPunch(G) {
   G.audio.punch();
   const target = nearestTarget(G, 2.4);
   if (target) {
-    // A punch that lands is an assault in broad daylight: it raises the
-    // wanted level like a gunshot does, unless the target already went
-    // down (hurtPed/hurtCop already raised it then) — no double-count.
+    // went down (hurtPed/hurtCop already raised it then) — no
+    // double-count. Without the exception the hunt would be
+    // after one punch, before the other three could land).
+    const isHunt = target.kind === 'ped' && G.missions && G.missions.hunt && G.missions.hunt.ped === target.obj;
     let down = false;
     if (target.kind === 'ped') down = hurtPed(G, target.obj, 30, G.player.pos.x, G.player.pos.z);
     else down = hurtCop(G, target.obj, 30);
-    if (!down) G.addWanted(1, 'You assaulted someone — the police were called');
+    if (!down && !isHunt) G.addWanted(1, 'You assaulted someone — the police were called');
     scarePeds(G, G.player.pos.x, G.player.pos.z, 14);
-    G.toast(target.kind === 'ped' ? 'You clocked a pedestrian!' : 'You hit a cop!');
+    G.toast(isHunt ? 'Clean hit — the enforcer is going down!' : (target.kind === 'ped' ? 'You clocked a pedestrian!' : 'You hit a cop!'));
   }
 }
 
@@ -71,7 +68,6 @@ export function tryShoot(G) {
   if (c.shootTimer > 0) return;
   c.shootTimer = 0.28;
   G.audio.gunshot();
-  // Muzzle flash at the player's hand, tracer to the hit point.
   const origin = G.player.pos.clone();
   origin.y += 1.4;
   const dir = new THREE.Vector3();
@@ -112,7 +108,9 @@ export function tryShoot(G) {
   positions.needsUpdate = true;
   c.tracer.material.opacity = 0.9;
   c.tracerTimer = 0.08;
-  G.addWanted(1, 'Shots fired — someone called the police');
+  // is loud enough for someone to call the police.
+  const hitHunt = hitKind && hitKind.kind === 'ped' && G.missions && G.missions.hunt && G.missions.hunt.ped === hitKind.obj;
+  if (!hitHunt) G.addWanted(1, 'Shots fired — someone called the police');
   scarePeds(G, G.player.pos.x, G.player.pos.z, 30);
 }
 

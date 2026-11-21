@@ -1,6 +1,4 @@
 // save.js — localStorage save/load for Solmar.
-// Saves money, story progress, health and the player's position so
-// Continue on the start screen picks up where the player left off.
 const SAVE_KEY = 'solmar-save-v1';
 
 export function saveGame(state) {
@@ -19,7 +17,7 @@ export function saveGame(state) {
     window.localStorage.setItem(SAVE_KEY, JSON.stringify(data));
     return true;
   } catch (err) {
-    return false; // private mode / no storage: play on without saving
+    return false;
   }
 }
 
@@ -35,9 +33,6 @@ export function loadSave() {
   }
 }
 
-export function clearSave() {
-  try { window.localStorage.removeItem(SAVE_KEY); } catch (err) { /* ignore */ }
-}
 
 export function applySave(state, data) {
   state.money = data.money;

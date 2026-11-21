@@ -1,8 +1,5 @@
-// hud.js — the Solmar HUD: health bar, money, wanted stars, mission
-// objective + distance, speed, clock, controls hint, toasts, and the
-// top-down minimap canvas (roads, buildings, player arrow, waypoint,
 // police blips, traffic dots, fare marker).
-import { currentMission, currentStep, fareDestination } from './missions.js';
+import { currentMission, currentStep, fareDestination, tailTarget, tailZone, huntTarget, raceTarget } from './missions.js';
 import { dist2D } from './utils.js';
 
 export function createHud() {
@@ -44,8 +41,8 @@ export function createHud() {
 
 function drawMinimap(G) {
   const ctx = G.hud.minimapCtx;
-  const S = 190; // canvas pixels
-  const W = 800; // world units shown (city + beach)
+  const S = 190;
+  const W = 800;
   const toMap = (x, z) => [((x + W / 2) / W) * S, ((z + W / 2) / W) * S];
   ctx.clearRect(0, 0, S, S);
   ctx.fillStyle = 'rgba(20, 40, 30, 0.92)';
@@ -94,10 +91,13 @@ function drawMinimap(G) {
     const [x, y] = toMap(cop.pos.x, cop.pos.z);
     ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fill();
   }
-  // Fare destination / waypoint (gold diamond).
+  // and so does the enforcer on the hunt.
   const step = currentStep(G);
   const fareDest = fareDestination(G);
-  const target = fareDest || (G.missions.active && step && step.pos ? step.pos : null);
+  const tailDest = tailTarget(G);
+  const huntDest = huntTarget(G);
+  const raceDest = raceTarget(G);
+  const target = fareDest || tailDest || huntDest || raceDest || (G.missions.active && step && step.pos ? step.pos : null);
   if (target) {
     const [x, y] = toMap(target.x, target.z);
     const pulse = 4 + Math.sin(G.time * 4) * 1.5;
@@ -161,6 +161,40 @@ export function updateHud(G, dt) {
   if (fare) {
     hud.objective.textContent = `Fare: drive your passenger to the marker`;
     hud.objectiveDist.textContent = `${Math.round(dist2D(G.player.pos.x, G.player.pos.z, fare.x, fare.z))}m`;
+  }
+  // close, too far, or on the edge.
+  if (step && step.tail) {
+    hud.objective.textContent = 'Shadow the Courier: stay in the zone';
+    const tail = G.missions.tail;
+    if (tail && tail.car) {
+      const d = Math.round(dist2D(G.player.pos.x, G.player.pos.z, tail.car.mesh.position.x, tail.car.mesh.position.z));
+      hud.objectiveDist.textContent = `${d}m · ${Math.ceil(20 - tail.hold)}s · ${tailZone(d)}`;
+    } else {
+      hud.objectiveDist.textContent = 'find the courier';
+    }
+  }
+  // spelling it out here wrapped the bar onto a second line.
+  if (step && step.layLow) {
+    const ll = G.missions.layLow;
+    const remain = ll ? Math.ceil(ll.remain) : step.layLow;
+    hud.objectiveDist.textContent = `${remain}s · ${G.wanted}★`;
+  }
+  // four punches (or three shots) put him down.
+  if (step && step.hunt) {
+    const hunt = G.missions.hunt;
+    if (hunt && hunt.ped) {
+      const d = Math.round(dist2D(G.player.pos.x, G.player.pos.z, hunt.ped.mesh.position.x, hunt.ped.mesh.position.z));
+      hud.objectiveDist.textContent = `${d}m · ${Math.max(0, Math.round(hunt.ped.health))} HP`;
+    } else {
+      hud.objectiveDist.textContent = 'find the enforcer';
+    }
+  }
+  if (step && step.race) {
+    const race = G.missions.race;
+    const idx = race ? race.idx : 0;
+    const rival = G.missions.rival;
+    const rivalText = rival ? ` · Rival ${rival.idx + 1}/5` : '';
+    hud.objectiveDist.textContent = `Checkpoint ${idx + 1}/5 · ${Math.ceil(G.missions.timer)}s${rivalText}`;
   }
   const speed = G.player.onFoot
     ? Math.round(G.player.speed * 3.6)

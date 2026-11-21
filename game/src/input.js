@@ -1,14 +1,11 @@
 // input.js — keyboard + mouse state for Solmar.
-// One object holds every key currently down, plus mouse deltas and clicks,
-// so the game loop reads input without touching DOM events itself.
 export function createInput(canvas) {
   const input = {
     keys: {},
     mouseDX: 0,
     mouseDY: 0,
-    clicked: false, // set true on a mouse click, consumed by the loop
+    clicked: false,
     locked: false,
-    // Edge-triggered actions: the loop consumes these once per press.
     pressed: {},
   };
 

@@ -9,7 +9,7 @@ gta6-01 bounty. You are **Rico Vega**, ex-getaway driver. You owe $2,000
 to **Marcus Thorne**, the developer who owns the city — and your debt.
 **Lena Cruz** runs the garage on 4th Street, and her jobs are the only
 way out. Explore the sun-soaked coastal city of Solmar on foot or by car,
-steal cars, lose the cops, run fares, grab cash, and finish all five jobs
+steal cars, lose the cops, run fares, grab cash, and finish all eight jobs
 to pay the debt and take the boat out.
 
 Everything is original: the city, characters, story, art and sounds are
@@ -52,8 +52,15 @@ Or: `python3 -m http.server -d game 8080`.
 - **Pedestrians** — walkers on the sidewalks who flee when scared.
 - **Wanted system** — 1–5 stars, police cars that chase and ram, foot
   cops who chase and bust you; busted and wasted screens.
-- **Story missions** — five chained jobs from Lena, each with a waypoint
+- **Story missions** — nine chained jobs from Lena, each with a waypoint
   beacon, objective text, distance, timer where it matters, and a payout.
+  Five are go-to jobs (pick up, deliver, steal a car, lose the heat, run
+  for the boat); four are different verbs of their own — tail Thorne's
+  courier (stay 12–45 metres back for 20 seconds without being spotted),
+  lay low until the heat dies down (stay clean for 25 seconds or the
+  clock restarts), run down Thorne's enforcer on foot before he
+  slips away, and race the boardwalk (hit all 5 checkpoints in 30
+  seconds for Thorne's crew's pink slips).
 - **Side activities** — scattered cash pickups and a fare job (drive a
   passenger to their destination).
 - **Combat** — punch and pistol (hitscan with muzzle flash and tracer).

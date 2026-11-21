@@ -1,16 +1,10 @@
-// city.js — procedural Solmar: streets, buildings, beach, port, park, props.
-// The city is a 9x9 road grid (spacing 64, road width 12) with districts:
-// downtown towers in the middle, a beach + ocean on the south edge, a port
-// full of containers in the north-east, and a green park in the south-west.
 import * as THREE from 'three';
 import { clamp } from './utils.js';
 
-export const ROAD_SPACING = 64;
 export const ROAD_WIDTH = 12;
 export const ROAD_COORDS = [-256, -192, -128, -64, 0, 64, 128, 192, 256];
 export const CITY_HALF = 288;
 
-// Fixed story places (world x,z). The missions module reads these.
 export const PLACES = {
   garage: { x: 44, z: -20, name: "Lena's Garage" },
   packageA: { x: -160, z: 96, name: 'Package pickup' },
@@ -59,7 +53,6 @@ function makePalm(rng) {
   for (let i = 0; i < 7; i++) {
     const leaf = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.7), leafMat);
     const a = (i / 7) * Math.PI * 2;
-    // Drooping fronds: each leaf points outward from the trunk top.
     leaf.position.set(Math.cos(a) * 1.1, 5.3, Math.sin(a) * 1.1);
     leaf.rotation.order = 'YXZ';
     leaf.rotation.y = -a + Math.PI / 2;
@@ -70,15 +63,40 @@ function makePalm(rng) {
   return group;
 }
 
+// by every marking of that kind, so the city stays cheap.
+function zebraTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128; canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#f5f0dc';
+  for (let i = 0; i < 5; i++) ctx.fillRect(12 + i * 24, 0, 9, 128);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function arrowTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64; canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#f5f0dc';
+  ctx.fillRect(26, 52, 12, 66);
+  ctx.beginPath();
+  ctx.moveTo(32, 8); ctx.lineTo(58, 56); ctx.lineTo(6, 56); ctx.closePath();
+  ctx.fill();
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 export function buildCity(scene, rng) {
   const city = {
-    buildings: [], // { minX, maxX, minZ, maxZ, height } for collision
-    trafficLights: [], // { x, z, phase } — one per intersection
+    buildings: [],
+    trafficLights: [],
     roadCoords: ROAD_COORDS,
     bounds: CITY_HALF,
   };
 
-  // --- Sky, sun, light -------------------------------------------------
   scene.background = new THREE.Color(0x87bfe8);
   scene.fog = new THREE.Fog(0x9fc8e8, 240, 780);
   const sun = new THREE.DirectionalLight(0xfff1c4, 2.6);
@@ -92,7 +110,6 @@ export function buildCity(scene, rng) {
   scene.add(sun);
   scene.add(new THREE.HemisphereLight(0xbfe3ff, 0x8a7a5a, 0.9));
 
-  // --- Ground: grass base, asphalt roads, sand beach, ocean -----------
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(1100, 1100),
     new THREE.MeshLambertMaterial({ color: 0x7fae62 }),
@@ -139,6 +156,154 @@ export function buildCity(scene, rng) {
       }
     }
   }
+  // dashes already do — a normal low-poly intersection read.
+  const edgeGeo = new THREE.PlaneGeometry(0.35, 2 * CITY_HALF + 16);
+  for (const c of ROAD_COORDS) {
+    for (const [x, z, rot] of [[c - 5.5, 0, 0], [c + 5.5, 0, 0], [0, c - 5.5, Math.PI / 2], [0, c + 5.5, Math.PI / 2]]) {
+      const edge = new THREE.Mesh(edgeGeo, lineMat);
+      edge.rotation.x = -Math.PI / 2;
+      edge.rotation.z = rot;
+      edge.position.set(x, 0.055, z);
+      scene.add(edge);
+    }
+  }
+
+  // height, no change to any system. Positions are FIXED city
+  // stay byte-identical to Cycle 11.
+  const hashJitter = (a, b) => ((((a * 7 + b * 13) % 7) + 7) % 7) - 3;
+  const zebraTex = zebraTexture();
+  // without out-shouting the player car and the roadblock.
+  const zebraMat = new THREE.MeshBasicMaterial({ map: zebraTex, transparent: true, opacity: 0.7 });
+  // beach zebras sit in the bottom band of their frames.
+  // (-68, 128) did for the downtown chase.
+  for (const [x, z, w, l, rot] of [
+    [-68, 128, 10, 12, Math.PI / 2],
+    [0, -128, 12, 8, 0],
+    [0, 128, 12, 8, 0],
+    [-112, 256, 10, 12, Math.PI / 2],
+    [16, 256, 10, 12, Math.PI / 2],
+    [124, -192, 10, 12, Math.PI / 2],
+  ]) {
+    const zb = new THREE.Mesh(new THREE.PlaneGeometry(w, l), zebraMat);
+    zb.rotation.x = -Math.PI / 2;
+    zb.rotation.z = rot;
+    zb.position.set(x, 0.07, z);
+    zb.name = 'zebra';
+    scene.add(zb);
+  }
+  // ~17 m out and reads at its real size.
+  const manholeGeo = new THREE.CircleGeometry(0.7, 16);
+  const manholeMat = new THREE.MeshBasicMaterial({ color: 0x2e3134 });
+  const manholeLat = { '-164': -3, '-128': 3, '-48': 3, 28: -3, 108: 3 };
+  for (const c of ROAD_COORDS) {
+    for (const along of [-164, -128, -48, 28, 108]) {
+      const j = hashJitter(c, along);
+      const lat = manholeLat[along];
+      const m1 = new THREE.Mesh(manholeGeo, manholeMat);
+      m1.rotation.x = -Math.PI / 2;
+      m1.position.set(c + lat, 0.07, along + j);
+      m1.name = 'manhole';
+      scene.add(m1);
+      const m2 = new THREE.Mesh(manholeGeo, manholeMat);
+      m2.rotation.x = -Math.PI / 2;
+      m2.position.set(along + j, 0.07, c + lat);
+      m2.name = 'manhole';
+      scene.add(m2);
+    }
+  }
+  // used near-black on near-black asphalt and the strips were
+  // invisible in the drive/mission frames.
+  const skidMat = new THREE.MeshBasicMaterial({ color: 0x4a4e54, transparent: true, opacity: 0.7 });
+  const skidGeoX = new THREE.PlaneGeometry(8, 0.7);
+  const skidGeoZ = new THREE.PlaneGeometry(0.7, 8);
+  for (const [cx, cz, geo, dx, dz] of [
+    [-58, 131, skidGeoX, 0, 0.95],
+    [0, 102, skidGeoZ, 0.95, 0],
+    [-118, 256, skidGeoX, 0, 0.95],
+    [0, -140, skidGeoZ, 0.95, 0],
+    [134, -189, skidGeoX, 0, 0.95],
+  ]) {
+    for (const s of [-1, 1]) {
+      const sk = new THREE.Mesh(geo, skidMat);
+      sk.rotation.x = -Math.PI / 2;
+      sk.position.set(cx + dx * s, 0.075, cz + dz * s);
+      sk.name = 'skid';
+      scene.add(sk);
+    }
+  }
+  // bottom band a direction, not just texture.
+  const arrowTex = arrowTexture();
+  const arrowMat = new THREE.MeshBasicMaterial({ map: arrowTex, transparent: true });
+  const arrowGeo = new THREE.PlaneGeometry(1.6, 3.4);
+  for (const [x, z, rot] of [
+    [-40, 131, Math.PI / 2],
+    [-3, 100, 0],
+    [-100, 259, Math.PI / 2],
+    [3, -148, Math.PI],
+    [152, -189, Math.PI / 2],
+  ]) {
+    const ar = new THREE.Mesh(arrowGeo, arrowMat);
+    ar.rotation.x = -Math.PI / 2;
+    ar.rotation.z = rot;
+    ar.position.set(x, 0.08, z);
+    ar.name = 'arrow';
+    scene.add(ar);
+  }
+  // every staged parked car and ped. One or two meshes each.
+  const hydrantMat = new THREE.MeshLambertMaterial({ color: 0xc23a2e });
+  const binMat = new THREE.MeshLambertMaterial({ color: 0x3a5a3a });
+  const benchMat = new THREE.MeshLambertMaterial({ color: 0x7a5a34 });
+  const signMat = new THREE.MeshLambertMaterial({ color: 0x2e6fc8 });
+  const poleMat = new THREE.MeshLambertMaterial({ color: 0x2c2f33 });
+  function hydrant(x, z) {
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.28, 0.7, 8), hydrantMat);
+    body.position.set(x, 0.35, z);
+    body.castShadow = true;
+    body.name = 'hydrant';
+    scene.add(body);
+    const top = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), hydrantMat);
+    top.position.set(x, 0.78, z);
+    top.castShadow = true;
+    top.name = 'hydrant';
+    scene.add(top);
+  }
+  function trashCan(x, z) {
+    const bin = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.3, 0.9, 8), binMat);
+    bin.position.set(x, 0.45, z);
+    bin.castShadow = true;
+    bin.name = 'trashcan';
+    scene.add(bin);
+  }
+  function bench(x, z) {
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.12, 0.5), benchMat);
+    seat.position.set(x, 0.45, z);
+    seat.castShadow = true;
+    seat.name = 'bench';
+    scene.add(seat);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.6, 0.1), benchMat);
+    back.position.set(x, 0.8, z - 0.22);
+    back.castShadow = true;
+    back.name = 'bench';
+    scene.add(back);
+  }
+  function busStop(x, z) {
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.6, 6), poleMat);
+    pole.position.set(x, 1.3, z);
+    pole.castShadow = true;
+    pole.name = 'busstop';
+    scene.add(pole);
+    const sign = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.08), signMat);
+    sign.position.set(x, 2.4, z);
+    sign.castShadow = true;
+    sign.name = 'busstop';
+    scene.add(sign);
+  }
+  hydrant(-8.5, 110);
+  hydrant(8, 265);
+  trashCan(8.5, 92);
+  trashCan(26, 265);
+  bench(-48, 119);
+  busStop(-104, 247);
 
   // Beach (south edge) and ocean beyond it.
   const sand = new THREE.Mesh(
@@ -165,7 +330,6 @@ export function buildCity(scene, rng) {
   surf.position.set(0, 0.05, 378);
   scene.add(surf);
 
-  // --- Buildings -------------------------------------------------------
   const palette = ['#e8b48a', '#d98a7a', '#a8c8d8', '#e8d8a8', '#c8a8d8', '#f0e0c8', '#88a8c8', '#d8b090'];
   const facadeCache = palette.map((c) => facadeTexture(rng, c, 0.35));
   const boxGeo = new THREE.BoxGeometry(1, 1, 1);
@@ -249,7 +413,6 @@ export function buildCity(scene, rng) {
     }
   }
 
-  // --- Street props: lamps, traffic lights, trees, palms on the beach --
   const lampMat = new THREE.MeshLambertMaterial({ color: 0x2c2f33 });
   const lampHeadMat = new THREE.MeshBasicMaterial({ color: 0xffe9a8 });
   for (const ix of ROAD_COORDS) {
@@ -300,7 +463,6 @@ export function buildCity(scene, rng) {
     scene.add(cloud);
   }
 
-  // Lena's garage: a low teal building with a sign block, at the fixed place.
   const garage = new THREE.Mesh(
     boxGeo,
     new THREE.MeshLambertMaterial({ color: 0x2e8f86 }),
@@ -315,6 +477,7 @@ export function buildCity(scene, rng) {
   });
   // Escape boat at the beach.
   const boat = new THREE.Group();
+  boat.scale.set(2, 2, 2);
   const hull = new THREE.Mesh(
     new THREE.BoxGeometry(10, 2.2, 4),
     new THREE.MeshLambertMaterial({ color: 0xf0f0f0 }),
@@ -330,10 +493,76 @@ export function buildCity(scene, rng) {
   boat.position.set(PLACES.boat.x, 0.4, PLACES.boat.z + 14);
   scene.add(boat);
 
+  // the chase camera, so it reads sharp, not fogged.
+  const apron = new THREE.Mesh(
+    new THREE.PlaneGeometry(84, 64),
+    new THREE.MeshLambertMaterial({ color: 0x8a8578 }),
+  );
+  apron.rotation.x = -Math.PI / 2;
+  apron.position.set(332, 0.05, -192);
+  apron.receiveShadow = true;
+  apron.name = 'apron';
+  scene.add(apron);
+  const craneMat = new THREE.MeshLambertMaterial({ color: 0xd8a02e });
+  const craneDark = new THREE.MeshLambertMaterial({ color: 0x3a3d42 });
+  const craneHook = new THREE.MeshLambertMaterial({ color: 0xc8552e });
+  function craneLeg(x, z, h) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(1.8, h, 1.8), craneMat);
+    leg.position.set(x, h / 2, z);
+    leg.castShadow = true;
+    leg.name = 'crane';
+    scene.add(leg);
+    city.buildings.push({
+      minX: x - 0.9, maxX: x + 0.9, minZ: z - 0.9, maxZ: z + 0.9, height: h,
+    });
+  }
+  function craneBeam(x, y, z, w, h, d) {
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), craneMat);
+    beam.position.set(x, y, z);
+    beam.castShadow = true;
+    beam.name = 'crane';
+    scene.add(beam);
+  }
+  for (const x of [318, 330]) for (const z of [-208, -176]) craneLeg(x, z, 30);
+  for (const x of [318, 330]) craneBeam(x, 30.5, -192, 2.2, 2.5, 40);
+  for (const z of [-208, -176]) craneBeam(324, 30.5, z, 14, 2.5, 2.2);
+  craneBeam(306, 32, -192, 24, 1.6, 1.6);
+  const cable = new THREE.Mesh(new THREE.BoxGeometry(0.2, 14, 0.2), craneDark);
+  cable.position.set(306, 24, -192);
+  cable.name = 'crane';
+  scene.add(cable);
+  const hook = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2, 2.2), craneHook);
+  hook.position.set(306, 16, -192);
+  hook.castShadow = true;
+  hook.name = 'crane';
+  scene.add(hook);
+  for (const x of [362, 374]) for (const z of [-248, -224]) craneLeg(x, z, 26);
+  for (const x of [362, 374]) craneBeam(x, 26.5, -236, 2, 2, 30);
+  for (const z of [-248, -224]) craneBeam(368, 26.5, z, 14, 2, 2);
+  // Container stacks flanking the road end, on the apron.
+  const stackCols = [0xc8552e, 0x2e7fc8, 0x3a9e4e, 0xd8b02e];
+  function containerStack(x, z, levels, col0) {
+    for (let i = 0; i < levels; i++) {
+      const cont = new THREE.Mesh(
+        new THREE.BoxGeometry(12, 2.6, 3),
+        new THREE.MeshLambertMaterial({ color: stackCols[(col0 + i) % 4] }),
+      );
+      cont.position.set(x, 1.3 + i * 2.6, z);
+      cont.castShadow = true;
+      cont.name = 'craneStack';
+      scene.add(cont);
+    }
+    city.buildings.push({
+      minX: x - 6, maxX: x + 6, minZ: z - 1.5, maxZ: z + 1.5, height: levels * 2.6,
+    });
+  }
+  containerStack(300, -214, 2, 0);
+  containerStack(300, -170, 2, 2);
+  containerStack(344, -216, 1, 1);
+
   return city;
 }
 
-// Push a circle (x,z,r) out of every building AABB it overlaps.
 // Returns true when a push happened.
 export function collideBuildings(city, x, z, r) {
   let hit = false;
@@ -351,14 +580,12 @@ export function collideBuildings(city, x, z, r) {
   return { x, z, hit };
 }
 
-// True when the NS road at this intersection has a green light.
 export function nsGreen(city, ix, iz, time) {
   const light = city.trafficLights.find((l) => l.x === ix && l.z === iz);
   const phase = light ? light.phase : 0;
   return (Math.floor(time / 5 + phase) % 2) === 0;
 }
 
-// True when the point (x,z) is inside any building footprint.
 export function pointInBuilding(city, x, z) {
   for (const b of city.buildings) {
     if (x > b.minX - 0.5 && x < b.maxX + 0.5 && z > b.minZ - 0.5 && z < b.maxZ + 0.5) return true;

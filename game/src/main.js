@@ -1,7 +1,3 @@
-// main.js — SOLMAR bootstrap + game loop. Builds the world (city, cars,
-// pedestrians, police, missions, HUD, audio) and runs the frame loop:
-// input → player/vehicle → traffic → pedestrians → police → combat →
-// missions → HUD → camera. Screenshot modes stage scenes via shots.js.
 import * as THREE from 'three';
 import { makeRng, readUrlParams, clamp } from './utils.js';
 import { buildCity } from './city.js';
@@ -20,7 +16,6 @@ import { applyShotMode, warmUpWorld } from './shots.js';
 const params = readUrlParams();
 const rng = makeRng(params.seed);
 
-// --- Renderer / scene ---------------------------------------------------
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -39,12 +34,11 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// --- Game state ---------------------------------------------------------
 const G = {
   scene, camera, renderer, rng, seed: params.seed,
   time: 0,
-  gameHour: 9.5, // sunny morning in Solmar
-  mode: 'start', // 'start' | 'play' | 'paused' | 'busted' | 'wasted' | 'complete'
+  gameHour: 9.5,
+  mode: 'start',
   money: 250,
   health: 100,
   wanted: 0,
@@ -63,7 +57,6 @@ const G = {
   hud: null,
 };
 
-// Shared helpers the systems call back into (kept on G to avoid cycles).
 G.toast = (text) => G.hud.toast(text);
 G.save = () => saveGame(G);
 G.addWanted = (stars, reason) => {
@@ -107,12 +100,10 @@ G.storyComplete = () => {
   showEndScreen('DEBT PAID', 'Thorne\'s money is yours, the boat is waiting, and Solmar is wide open. Rico Vega is free — free roam continues, keep the fares coming.');
   G.save();
 };
-// Warm-up wrappers used by shots.js (advance traffic/peds/police only).
 G.updateTrafficOnly = (dt) => updateTraffic(G, dt);
 G.updatePedsOnly = (dt) => updatePedestrians(G, dt);
 G.updatePoliceOnly = (dt) => updatePolice(G, dt);
 
-// --- Build the world ----------------------------------------------------
 G.city = buildCity(scene, rng);
 G.player = createPlayerState(scene);
 G.combat = createCombatState(scene);
@@ -123,7 +114,6 @@ spawnPedestrians(G, 26);
 spawnPickups(G, 12);
 spawnFareCustomer(G);
 
-// --- Screens ------------------------------------------------------------
 const startScreen = document.getElementById('start-screen');
 const pauseScreen = document.getElementById('pause-screen');
 const endScreen = document.getElementById('end-screen');
@@ -161,8 +151,6 @@ function startGame(fromSave) {
 document.getElementById('start-btn').addEventListener('click', () => startGame(false));
 const continueBtn = document.getElementById('continue-btn');
 function refreshContinueButton() {
-  // Show Continue whenever a save exists. Checked live, not just at
-  // page load — a save made in this session must show it at once.
   continueBtn.style.display = loadSave() ? 'inline-block' : 'none';
 }
 continueBtn.addEventListener('click', () => startGame(true));
@@ -203,15 +191,13 @@ document.getElementById('end-retry-btn').addEventListener('click', () => {
   G.toast("Back on your feet at Lena's Garage.");
 });
 
-// --- Screenshot staging -------------------------------------------------
 const shotActive = applyShotMode(G, params.shot);
 if (shotActive) {
   snapCamera(G);
   warmUpWorld(G, 2);
-  snapCamera(G); // re-snap: warm-up moved traffic/police, not the player
+  snapCamera(G);
 }
 
-// --- Frame loop ---------------------------------------------------------
 const clock = new THREE.Clock();
 let saveTimer = 0;
 
@@ -221,7 +207,7 @@ function frame() {
 
   if (G.mode === 'play') {
     G.time += dt;
-    G.gameHour = (G.gameHour + dt / 240) % 24; // a full day in 4 minutes of play
+    G.gameHour = (G.gameHour + dt / 240) % 24;
     const input = G.input;
     // Pause.
     if (input.wasPressed('Escape')) {
@@ -288,7 +274,6 @@ function frame() {
       G.hud.root.style.display = 'block';
     }
   } else if (G.mode === 'start') {
-    // Slow cinematic orbit over the plaza behind the start screen.
     G.time += dt;
     const t = G.time * 0.05;
     camera.position.set(Math.sin(t) * 90, 26, Math.cos(t) * 90);
@@ -305,9 +290,7 @@ function frame() {
 }
 
 frame();
-// Signal for automated screenshots: the first frame has rendered.
 window.__solmarReady = true;
-// Debug readout for headless verification: ?debug=1 writes live state
 // into the #status element (readable via --dump-dom).
 if (new URLSearchParams(window.location.search).get('debug') === '1') {
   setInterval(() => {
@@ -318,9 +301,27 @@ if (new URLSearchParams(window.location.search).get('debug') === '1') {
       angle: +G.player.angle.toFixed(2),
       cam: camera.position.toArray().map((v) => Math.round(v)),
       camYaw: +G.camYaw.toFixed(2),
+      camPitch: +G.camPitch.toFixed(2),
       speed: car ? +car.speed.toFixed(1) : 0,
       wanted: G.wanted,
       police: G.police.cars.length,
+      pc: G.police.cars.map((c) => [Math.round(c.mesh.position.x), Math.round(c.mesh.position.z), c.roadblock ? 'rb' : 'chase']),
+      peds: G.peds.slice(0, 6).map((p) => [Math.round(p.pos.x), Math.round(p.pos.z)]),
+      park: G.cars.filter((c) => c.kind === 'parked').slice(0, 4).map((c) => [Math.round(c.mesh.position.x), Math.round(c.mesh.position.z)]),
+      traf: G.cars.filter((c) => c.kind === 'traffic').slice(0, 6).map((c) => [Math.round(c.mesh.position.x), Math.round(c.mesh.position.z)]),
+      pickups: G.missions.pickups.filter((p) => p.mesh.visible).map((p) => [Math.round(p.mesh.position.x), Math.round(p.mesh.position.z)]),
+      fareMarker: G.missions.fareMarker && G.missions.fareMarker.visible ? [Math.round(G.missions.fareMarker.position.x), Math.round(G.missions.fareMarker.position.z)] : null,
+      meshes: scene.children.length,
+      roadblock: G.police.cars.filter((c) => c.roadblock).length,
+      rb: G.police.cars.filter((c) => c.roadblock).map((c) => [Math.round(c.mesh.position.x), Math.round(c.mesh.position.z)]),
+      mi: G.missions.index, ms: G.missions.step, active: G.missions.active, storyDone: G.missions.storyDone,
+      tail: G.missions.tail ? [Math.round(G.missions.tail.car.mesh.position.x), Math.round(G.missions.tail.car.mesh.position.z), +G.missions.tail.hold.toFixed(1), +G.missions.tail.spot.toFixed(1), +G.missions.tail.lose.toFixed(1)] : null,
+      layLow: G.missions.layLow ? [+G.missions.layLow.remain.toFixed(1), G.missions.layLow.lastWanted] : null,
+      hunt: G.missions.hunt ? [Math.round(G.missions.hunt.ped.mesh.position.x), Math.round(G.missions.hunt.ped.mesh.position.z), Math.round(G.missions.hunt.ped.health), G.missions.hunt.ped.state, +G.missions.hunt.lose.toFixed(1)] : null,
+      race: G.missions.race ? [G.missions.race.idx, +G.missions.timer.toFixed(1)] : null,
+      rival: G.missions.rival ? [G.missions.rival.idx, Math.round(G.missions.rival.car.mesh.position.x), Math.round(G.missions.rival.car.mesh.position.z)] : null,
+      obj: document.getElementById('objective-text') ? document.getElementById('objective-text').textContent : '',
+      objDist: document.getElementById('objective-dist') ? document.getElementById('objective-dist').textContent : '',
       time: +G.time.toFixed(1),
     });
   }, 500);

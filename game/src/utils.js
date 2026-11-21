@@ -1,6 +1,4 @@
 // utils.js — seeded RNG and small math helpers for Solmar.
-// Everything random in the city comes from one seeded generator so a
-// ?seed= value rebuilds the exact same streets, buildings and traffic.
 export function mulberry32(seed) {
   let a = seed >>> 0;
   return function nextRandom() {

@@ -1,9 +1,6 @@
-// police.js — the Solmar PD wanted system: 1–5 stars, police cars that
-// chase and ram, foot cops who chase on foot and bust the player, and
-// the busted / wasted outcomes. Wanted decays when the player hides.
 import * as THREE from 'three';
 import { buildCarMesh } from './vehicles.js';
-import { collideBuildings, clampToCity } from './city.js';
+import { collideBuildings, clampToCity, nearestRoadCoord } from './city.js';
 import { clamp, dist2D, turnToward } from './utils.js';
 
 export function createPoliceState() {
@@ -11,13 +8,11 @@ export function createPoliceState() {
     cars: [],
     foot: [],
     bustTimer: 0,
-    quietTimer: 0, // seconds since the last crime
+    quietTimer: 0,
     decayTimer: 0,
   };
 }
 
-// Spawn one police cruiser at an exact spot (used to stage the chase
-// screenshot: oncoming cruisers ahead of the player, in frame).
 export function spawnPoliceCarAt(G, x, z, speed = 12) {
   const mesh = buildCarMesh(0xf0f0f0, true);
   mesh.position.set(x, 0, z);
@@ -31,6 +26,48 @@ export function spawnPoliceCarAt(G, x, z, speed = 12) {
   G.police.cars.push(car);
   G.cars.push(car);
   return car;
+}
+
+export function spawnRoadblock(G) {
+  if (G.police.cars.some((c) => c.roadblock)) return null;
+  const fx = Math.sin(G.player.angle), fz = Math.cos(G.player.angle);
+  const alongX = Math.abs(fx) > Math.abs(fz);
+  const road = alongX ? nearestRoadCoord(G.player.pos.z) : nearestRoadCoord(G.player.pos.x);
+  const offRoad = alongX ? Math.abs(G.player.pos.z - road) : Math.abs(G.player.pos.x - road);
+  if (offRoad > 10) return null;
+  const ahead = 45;
+  const ax = alongX ? clampToCity(G.player.pos.x + fx * ahead) : road;
+  const az = alongX ? road : clampToCity(G.player.pos.z + fz * ahead);
+  const angle = alongX ? 0 : Math.PI / 2;
+  const cars = [];
+  for (const side of [-3.5, 3.5]) {
+    const mesh = buildCarMesh(0xf0f0f0, true);
+    const x = alongX ? ax : road + side;
+    const z = alongX ? road + side : az;
+    mesh.position.set(x, 0, z);
+    mesh.rotation.y = angle;
+    G.scene.add(mesh);
+    const car = {
+      mesh, angle, speed: 0, kind: 'police', health: 100,
+      sirenPhase: G.rng.range(0, 1), roadblock: true,
+    };
+    G.police.cars.push(car);
+    G.cars.push(car);
+    cars.push(car);
+  }
+  G.toast('Roadblock ahead!');
+  return cars;
+}
+
+function removeRoadblock(G) {
+  const rb = G.police.cars.filter((c) => c.roadblock);
+  if (rb.length === 0) return;
+  for (const car of rb) {
+    G.scene.remove(car.mesh);
+    const i = G.cars.indexOf(car);
+    if (i >= 0) G.cars.splice(i, 1);
+  }
+  G.police.cars = G.police.cars.filter((c) => !c.roadblock);
 }
 
 function spawnPoliceCar(G) {
@@ -81,7 +118,6 @@ function spawnFootCop(G) {
   return cop;
 }
 
-// Keep the pursuit sized to the wanted level, then move every unit.
 export function updatePolice(G, dt) {
   const wanted = G.wanted;
   if (wanted <= 0) {
@@ -103,20 +139,25 @@ export function updatePolice(G, dt) {
     return;
   }
   G.police.quietTimer = 0;
+  if (wanted >= 3) spawnRoadblock(G);
+  else removeRoadblock(G);
   const wantCars = Math.min(wanted + 1, 5);
   const wantFoot = G.player.onFoot ? Math.min(wanted, 3) : 0;
   while (G.police.cars.length < wantCars) spawnPoliceCar(G);
   while (G.police.foot.length < wantFoot) spawnFootCop(G);
 
-  // Police cars: steer straight at the player, slide around buildings.
   for (const car of G.police.cars) {
+    // light bars still flash so they read as police.
+    if (car.roadblock) {
+      const bar = car.mesh.getObjectByName('lightbar');
+      if (bar) bar.material.color.setHex(Math.floor(G.time * 3) % 2 === 0 ? 0xff2a2a : 0x2a6aff);
+      continue;
+    }
     const dx = G.player.pos.x - car.mesh.position.x;
     const dz = G.player.pos.z - car.mesh.position.z;
     const dist = Math.hypot(dx, dz) || 1;
     const targetAngle = Math.atan2(dx, dz);
     car.angle = turnToward(car.angle, targetAngle, 2.2 * dt);
-    // Police are a touch faster than the player's top speed, so a chase
-    // stays dangerous — but they slide on buildings and can be shaken.
     const topSpeed = 24 + wanted * 1.5;
     car.speed = Math.min(car.speed + 10 * dt, topSpeed);
     let nx = car.mesh.position.x + Math.sin(car.angle) * car.speed * dt;
@@ -129,8 +170,6 @@ export function updatePolice(G, dt) {
     // Flash the light bar red/blue.
     const bar = car.mesh.getObjectByName('lightbar');
     if (bar) bar.material.color.setHex(Math.floor(G.time * 3) % 2 === 0 ? 0xff2a2a : 0x2a6aff);
-    // Ramming the player's car hurts; ramming the player on foot hurts more.
-    // A ram has a cooldown so one touch does not drain the whole health bar.
     car.ramTimer = Math.max(0, (car.ramTimer || 0) - dt);
     if (dist < 3.2 && car.ramTimer <= 0) {
       if (G.player.onFoot) G.damagePlayer(25 * dt * 4, 'Run over by a police cruiser');
@@ -142,7 +181,6 @@ export function updatePolice(G, dt) {
     }
   }
 
-  // Foot cops: run at the player; close contact builds the bust timer.
   let anyClose = false;
   for (const cop of G.police.foot) {
     if (cop.state === 'down') continue;
@@ -174,10 +212,9 @@ export function updatePolice(G, dt) {
     G.police.bustTimer = Math.max(0, G.police.bustTimer - dt * 2);
   }
 
-  // Wanted decays after 25 quiet seconds, one star per 10 seconds.
   G.police.decayTimer += dt;
   if (G.police.decayTimer > 25) {
-    G.police.decayTimer = 15; // then one star per 10s of quiet
+    G.police.decayTimer = 15;
     if (G.wanted > 0) {
       G.wanted--;
       G.toast(`Heat dying down — wanted level ${G.wanted}`);

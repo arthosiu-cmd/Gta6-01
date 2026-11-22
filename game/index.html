@@ -14,19 +14,37 @@
   #health-fill { height: 100%; width: 100%; background: #37d67a; }
   #health-text { font-size: 12px; }
   #money { font-size: 22px; font-weight: 700; color: #7dff9a; }
+  #rep { font-size: 12px; font-weight: 700; color: #ffd23e; letter-spacing: 1px; margin-top: 4px; }
+  #rep-bar { height: 6px; background: rgba(255,255,255,0.18); border-radius: 3px; overflow: hidden; margin-top: 2px; }
+  #rep-fill { height: 100%; width: 0%; background: #ffd23e; }
   #stars { font-size: 22px; letter-spacing: 3px; color: #888; text-shadow: 0 0 6px rgba(0,0,0,0.7); }
   #minimap-wrap { position: absolute; top: 12px; right: 12px; }
+  #dispatch { position: absolute; top: 172px; left: 12px; width: 250px; font-size: 12px; line-height: 1.55; }
+  #dispatch-head { font-weight: 700; color: #ffd23e; letter-spacing: 1px; font-size: 12px; }
+  #dispatch-rows { color: #dfe9f2; white-space: pre-line; overflow: hidden; }
+  #airunit { color: #ffd23e; font-weight: 700; font-size: 12px; letter-spacing: 1px; }
+  #los { font-weight: 700; font-size: 12px; letter-spacing: 1px; }
+  #side { font-size: 12px; font-weight: 700; color: #ff9ecf; letter-spacing: 1px; margin-top: 4px; }
+  #weapons { position: absolute; bottom: 64px; left: 12px; font-size: 13px; letter-spacing: 1px; }
+  #weapons .active { color: #ffd23e; font-weight: 700; }
+  #district { position: absolute; bottom: 110px; left: 12px; font-size: 12px; letter-spacing: 1px; color: #cfe8ff; }
   #minimap { width: 190px; height: 190px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.55); background: #14281e; box-shadow: 0 0 0 4px rgba(8,18,28,0.6); }
   #objective { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); text-align: center; max-width: 520px; }
+  #mission-head { font-size: 13px; font-weight: 700; letter-spacing: 1px; color: #ffd23e; text-transform: uppercase; }
+  #mission-next { font-size: 12px; color: #cfe8ff; margin-top: 2px; }
   #objective .obj-title { font-size: 13px; letter-spacing: 1px; color: #ffd23e; text-transform: uppercase; }
   #objective-text { font-size: 16px; font-weight: 600; }
   #objective-dist { font-size: 15px; color: #ffd23e; font-weight: 700; }
   #bottomright { position: absolute; bottom: 14px; right: 14px; text-align: right; }
   #speed { font-size: 26px; font-weight: 700; }
   #clock { font-size: 16px; color: #cfe8ff; }
+  #radio { font-size: 11px; color: #ffd23e; white-space: nowrap; }
   #hint { position: absolute; bottom: 12px; left: 12px; font-size: 12px; color: #dfe9f2; max-width: 60%; }
-  #toast { position: absolute; bottom: 64px; left: 50%; transform: translateX(-50%); font-size: 16px; font-weight: 600; background: rgba(8,18,28,0.8); padding: 8px 16px; border-radius: 20px; opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
+  #toast { position: absolute; bottom: 116px; left: 50%; transform: translateX(-50%); font-size: 16px; font-weight: 600; background: rgba(8,18,28,0.8); padding: 8px 16px; border-radius: 20px; opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
   #brief { display: none; position: absolute; top: 15%; left: 50%; transform: translateX(-50%); width: 440px; max-width: 86%; background: rgba(8,18,28,0.88); border: 1px solid #ffd23e; border-radius: 10px; padding: 14px 18px; }
+  #brief-head { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; }
+  #brief-portrait { width: 44px; height: 44px; border-radius: 50%; background: #2e7fc8; color: #fff; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  #brief-name { font-size: 12px; color: #ffd23e; font-weight: 700; letter-spacing: 1px; }
   #brief-title { font-size: 20px; font-weight: 700; color: #ffd23e; margin-bottom: 6px; }
   #brief-text { font-size: 15px; line-height: 1.5; }
   #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.85); box-shadow: 0 0 4px #000; }
@@ -55,22 +73,36 @@
       <div id="health-bar"><div id="health-fill"></div></div>
       <span id="health-text">100</span> HP
       <div id="money">$250</div>
+      <div id="rep">REP 0 · ROOKIE — 0 / 300 XP</div>
+      <div id="rep-bar"><div id="rep-fill"></div></div>
       <div id="stars">☆☆☆☆☆</div>
+      <div id="airunit" style="display:none">▲ AIR UNIT DEPLOYED</div>
+      <div id="los" style="display:none">○ HIDDEN</div>
+      <div id="side">SHELLS 0/12 · JUMPS 0/5</div>
     </div>
   </div>
+  <div id="dispatch" class="panel" style="display:none">
+    <div id="dispatch-head">SOLMAR PD</div>
+    <div id="dispatch-rows"></div>
+  </div>
   <div id="objective" class="panel">
+    <div id="mission-head">FREE ROAM</div>
     <div class="obj-title">Objective</div>
     <span id="objective-text">Go to Lena's Garage</span>
     <span id="objective-dist"></span>
+    <div id="mission-next"></div>
   </div>
   <div id="minimap-wrap"><canvas id="minimap" width="190" height="190"></canvas></div>
   <div id="bottomright" class="panel">
     <div id="speed">0 km/h</div>
-    <div id="clock">09:30</div>
+    <div id="clock">17:41</div>
+    <div id="radio">SOLMAR FM 98.1 · Sunset Drive — 'Golden Coastline'</div>
   </div>
   <div id="hint" class="panel"></div>
+  <div id="weapons" class="panel"></div>
+  <div id="district" class="panel">Downtown · Solmar</div>
   <div id="toast"></div>
-  <div id="brief"><div id="brief-title"></div><div id="brief-text"></div></div>
+  <div id="brief"><div id="brief-head"><div id="brief-portrait">LC</div><div><div id="brief-name">Lena Cruz · Garage Owner</div><div id="brief-title"></div></div></div><div id="brief-text"></div></div>
   <div id="crosshair"></div>
 </div>
 
@@ -81,7 +113,7 @@
   <p>Explore the city on foot or by car. Steal cars, lose the cops, run fares, grab cash — and finish all five jobs to pay the debt and take the boat out of Solmar.</p>
   <div class="controls">
     WASD move / drive &nbsp;·&nbsp; Shift sprint &nbsp;·&nbsp; E enter / exit car &nbsp;·&nbsp; F punch<br>
-    Click / Space shoot &nbsp;·&nbsp; Q take a fare &nbsp;·&nbsp; R restart mission &nbsp;·&nbsp; M mute &nbsp;·&nbsp; Esc pause<br>
+    Click / Space shoot &nbsp;·&nbsp; 1–4 switch weapon &nbsp;·&nbsp; Q take a fare &nbsp;·&nbsp; R restart mission &nbsp;·&nbsp; M mute &nbsp;·&nbsp; N radio &nbsp;·&nbsp; Esc pause<br>
     Mouse: click the game to look around. Progress saves automatically.
   </div>
   <div>

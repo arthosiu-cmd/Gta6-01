@@ -1,29 +1,29 @@
 # SOLMAR — gta6-01 checklist (Cycle 1 — DONE 2026-11-18)
 
 ## MUST (gate + judge criterion 1)
-- [x] game/ static files only, no network refs, index.html ≤ 1 MiB (7,028 B), game/ ≤ 993 files / 48 MiB (16 files, 796,343 B after Cycle 18 — compaction freed 38,275 B of dossier text, rival cost 1,985 B)
+- [x] game/ static files only, no network refs, index.html ≤ 1 MiB (7,028 B), game/ ≤ 993 files / 48 MiB (16 files, 796,343 B after Cycle 18 — compaction freed 38,275 B of dossier text, rival cost 1,985 B); Cycle 19: 806,851 B, dossier text 137,066 chars, margin 26,774 B
 - [x] main.ts (Node 22 stdlib only) copies game/ + screenshots/ to /output, writes dossier.json via buildDossier (text 163840, shots max 4 / 262144 B, game 993 / 48 MiB); deterministic (two runs byte-identical, diff -r clean; re-verified Cycle 17: dossier 905,428 B, text 163,248 chars — margin only 592 B; re-verified Cycle 18: dossier 868,796 B, text 126,575 chars — margin 37,265 B)
-- [x] 4 screenshots, each ≤ 256 KiB (129–145 KB), 1280×800 (long 1280, short 800), first by name = cover (1-chase.jpg); real headless-Chromium renders of this game, unedited; Cycle 5: mission shot now stages the courier tail (gold beacon + live "43m · 20s"), drive has an oncoming car + near peds, chase has extra traffic + 2 peds; foot unchanged from Cycle 4; Cycle 6: mission shot re-staged closer (courier ~25 m, live "25m · 20s · IN ZONE" + zone toast), all 4 re-rendered and checked, no regression; Cycle 7: edge lines on every road + parked cars at the curb beside the player in all 4 shots + a close car ahead in drive/chase, slim beacon, foot cross-traffic closer — all 4 re-rendered and checked, no regression; Cycle 8: drive shot is a three-quarter view (camera 11 degrees off the road axis — the player car shows its side + wheels, not a flat slab), beacon column shorter + slimmer + fainter (10 m / 0.7 / 0.3 — ends inside the frame, sky visible above it) — all 4 re-rendered and checked, chase byte-identical to Cycle 7, no regression; Cycle 9: chase cover is a three-quarter view too (same 11-degree offset — the blue player car shows its side + wheels, not a flat slab), foot cross-street cars now cross the intersection ahead (z=64 road, ~25 degrees off-axis, both visible) — chase + foot re-rendered and checked, drive byte-identical to Cycle 8, mission same composition, no regression; Cycle 10: mission shot is a three-quarter view too (same 11-degree offset — the yellow player car shows its side + wheels, not a flat slab), foot/drive/chase are the same compositions as Cycle 9 (debug readouts match Cycle 9 exactly; hashes differ by a few KB of live timing) — all 4 re-rendered and checked, no regression; Cycle 14: chase cover restaged to the port (player (128,-192) heading east past the container yard, roadblock + cruisers + "The Drop: Pick up the crate at the port 96m") and the beacon column shortened again (5 m / 0.6 / 0.35, marker cone 0.9 / 1.8 at y=4.2 — the Cycle 8 10 m column still reached the top edge of the renders) + fare marker lowered to just above the ped's head (y=2.4) — all 4 re-rendered and checked, no regression; Cycle 15: foot shot restaged to the park's edge (Rico on road x=-128 at (-128,224) heading north, park lawn + palms on his left beyond the z=192 cross street, hunt target 15 m ahead, both cross cars visible) — all 4 re-rendered and checked, mission byte-identical to Cycle 14, no regression; Cycle 17: drive shot restaged to the M9 street race (player in the car at the start line on the beach road, checkpoint 1 + gold ring + beacon 40 m ahead, live "Checkpoint 1/5 · 30s", beach + boat + towers as before) — drive re-rendered and checked, chase/foot/mission re-rendered and same compositions as Cycle 16, no regression; Cycle 18: drive shot re-rendered with the rival — orange "Falco" beside the red player car at the start line, "Checkpoint 1/5 · 30s · Rival 1/5" live in the objective bar, beacon + ring at CP1 ahead (135,916 B); chase/foot/mission re-rendered and same compositions as Cycle 17, no regression
+- [x] 4 screenshots, each ≤ 256 KiB (129–145 KB), 1280×800 (long 1280, short 800), first by name = cover (1-chase.jpg); real headless-Chromium renders of this game, unedited; Cycle 5: mission shot now stages the courier tail (gold beacon + live "43m · 20s"), drive has an oncoming car + near peds, chase has extra traffic + 2 peds; foot unchanged from Cycle 4; Cycle 6: mission shot re-staged closer (courier ~25 m, live "25m · 20s · IN ZONE" + zone toast), all 4 re-rendered and checked, no regression; Cycle 7: edge lines on every road + parked cars at the curb beside the player in all 4 shots + a close car ahead in drive/chase, slim beacon, foot cross-traffic closer — all 4 re-rendered and checked, no regression; Cycle 8: drive shot is a three-quarter view (camera 11 degrees off the road axis — the player car shows its side + wheels, not a flat slab), beacon column shorter + slimmer + fainter (10 m / 0.7 / 0.3 — ends inside the frame, sky visible above it) — all 4 re-rendered and checked, chase byte-identical to Cycle 7, no regression; Cycle 9: chase cover is a three-quarter view too (same 11-degree offset — the blue player car shows its side + wheels, not a flat slab), foot cross-street cars now cross the intersection ahead (z=64 road, ~25 degrees off-axis, both visible) — chase + foot re-rendered and checked, drive byte-identical to Cycle 8, mission same composition, no regression; Cycle 10: mission shot is a three-quarter view too (same 11-degree offset — the yellow player car shows its side + wheels, not a flat slab), foot/drive/chase are the same compositions as Cycle 9 (debug readouts match Cycle 9 exactly; hashes differ by a few KB of live timing) — all 4 re-rendered and checked, no regression; Cycle 14: chase cover restaged to the port (player (128,-192) heading east past the container yard, roadblock + cruisers + "The Drop: Pick up the crate at the port 96m") and the beacon column shortened again (5 m / 0.6 / 0.35, marker cone 0.9 / 1.8 at y=4.2 — the Cycle 8 10 m column still reached the top edge of the renders) + fare marker lowered to just above the ped's head (y=2.4) — all 4 re-rendered and checked, no regression; Cycle 15: foot shot restaged to the park's edge (Rico on road x=-128 at (-128,224) heading north, park lawn + palms on his left beyond the z=192 cross street, hunt target 15 m ahead, both cross cars visible) — all 4 re-rendered and checked, mission byte-identical to Cycle 14, no regression; Cycle 17: drive shot restaged to the M9 street race (player in the car at the start line on the beach road, checkpoint 1 + gold ring + beacon 40 m ahead, live "Checkpoint 1/5 · 30s", beach + boat + towers as before) — drive re-rendered and checked, chase/foot/mission re-rendered and same compositions as Cycle 16, no regression; Cycle 18: drive shot re-rendered with the rival — orange "Falco" beside the red player car at the start line, "Checkpoint 1/5 · 30s · Rival 1/5" live in the objective bar, beacon + ring at CP1 ahead (135,916 B); chase/foot/mission re-rendered and same compositions as Cycle 17, no regression; Cycle 19: all 4 re-rendered — chase with heli + dispatch + dusk (148,407 B), foot dusk hunt (138,220 B), drive dusk race + radio (137,134 B), mission dusk tail (131,411 B)
 - [x] .makefun/owner.json {"wallet": "5FGhpCb28E2Vq9d5DwMhKEBk3HoBpJHwDCKDtUb7YREV"}; LICENSE (MIT, kit copy)
 - [x] City explorable on foot AND by car (enter/exit with E, steal parked/traffic cars)
 - [x] Traffic cars (road AI, stop at red lights) + pedestrians (sidewalks, flee)
-- [x] Wanted 1–5 stars, police cars + foot cops chase, busted / wasted states; Cycle 4: at wanted ≥ 3 the PD parks a 2-cruiser roadblock across the road ahead of the player (spawns from the road grid, despawns below wanted 3, player car cannot drive through it but can steer around on the sidewalk)
+- [x] Wanted 1–5 stars, police cars + foot cops chase, busted / wasted states; Cycle 4: at wanted ≥ 3 the PD parks a 2-cruiser roadblock across the road ahead of the player (spawns from the road grid, despawns below wanted 3, player car cannot drive through it but can steer around on the sidewalk); Cycle 19: at wanted ≥ 4 a police helicopter joins (hover 44 m ahead + 34 m left, 9 m up, spotlight cone + pool on the player, "▲ AIR UNIT DEPLOYED" chip, minimap ring blip; staged in the chase cover at wanted 3); every live unit has a callsign (HARBOUR-11, TANGO-7, BULWARK-1/2, AIR-1) shown in the dispatch panel with live distance + role (PURSUIT / RAMMING / ROADBLOCK / SPOTLIGHT)
 - [x] Missions: 9-chapter story chain with waypoint + objective + reward; Cycle 5: Mission 6 "Shadow the Courier" is a tail, not a go-to — stay 12–45 m behind the courier for 20 s, too close (<8 m) gets you spotted, too far (>55 m) loses him; Cycle 6: the game now teaches the zone — brief + step text name 12–45 m / 8 m / 55 m / 20 s, the HUD shows a live zone label (IN ZONE / TOO CLOSE / TOO FAR / EDGE), and each danger zone warns once per entry ("Too close — he'll spot you! Back off!" / "You're losing him — speed up!") before the fail lands; Cycle 10: Mission 7 "Clean Getaway" is a lose-the-heat evasion, not a go-to — stay clean for 25 s while wanted 3 (any new crime restarts the clock; wanted falling never does), then reach the safehouse; the HUD shows a live "25s · 3★" and the brief names the rule; Cycle 11: Mission 8 "The Enforcer" is a hunt, not a go-to — chase down Thorne's enforcer on foot and take him down (100 HP, he flees); Cycle 17: Mission 9 "Boardwalk Rush" is a street race, not a go-to — steal a car, then hit 5 checkpoints on the beachfront road in 30 s (needCar step first so the clock does not tick on foot); the HUD shows a live "Checkpoint N/5 · Ns" and gold rings mark the course; storyDone now happens after M9, not M8; Cycle 18: M9 is now a race against a rival — orange "Falco" runs the same 5 checkpoints at 17.5 m/s (~23.3 s for the 408 m course; clean player run ~16 s), player must finish first or the mission fails ("The rival beat you to the finish!"); the 30 s timer still ticks but the rival is the binding clock; the rival is not a traffic car (no lights, no gap logic, no rng draw, not stealable) and is removed on complete/fail/restart; the HUD shows a live "Checkpoint N/5 · Ns · Rival N/5"
 - [x] Combat: punch (F) + pistol (click/Space), health; Cycle 3: a punch that lands now raises wanted +1 like a shot (was 0 stars; no double-count when the target goes down)
-- [x] HUD: health, money, wanted stars, minimap canvas, objective + distance, speed, clock, controls hint
+- [x] HUD: health, money, wanted stars, minimap canvas, objective + distance, speed, clock, controls hint; Cycle 19: dispatch panel (SOLMAR PD — n UNITS · CODE n, callsign + kind + live distance + role, 5 rows max) + radio readout + air-unit chip
 - [x] Start screen + pause (Esc) + busted/wasted screens; save/load via localStorage (Cycle 2: Continue now appears immediately after Save & quit — was only after reload)
 - [x] ?shot=foot|drive|chase|mission|start & ?seed= staged deterministic scenes, HUD + minimap visible in every shot; Cycle 4: brief card hidden during staged shots (objective bar + toast still show the mission), traffic + peds staged into every mode, camera yaw staged at its settled value (foot/mission were mid-swing before); Cycle 5: mission shot stages the M6 tail (courier + beacon + live distance/countdown in the objective bar), drive/chase restaged fuller, foot untouched; Cycle 6: mission shot stages the player closer (z=107, courier ~25 m at frame time) with peds moved to match; ?debug=1 readout now also reports camPitch; Cycle 10: ?shot=escape opens M7 straight at its lay-low step for live playtesting (the M1–M6 chain is too long to play through headlessly) — a test staging like ?debug=1, not a submitted screenshot; ?debug=1 readout now also reports layLow [remain, lastWanted]; Cycle 17: drive shot opens M9 straight at its race step (startMissionStep(G, 8, 1)) — a test staging like ?shot=escape, not a new screenshot; ?debug=1 readout now also reports race [idx, timer]; Cycle 18: ?debug=1 readout also reports rival [idx, x, z]
 - [x] All JS modules node --check clean; no http/https src in index.html; bare "three" only via import map
 
 ## SHOULD (criteria 2–3: depth, feel)
 - [x] Side activities: cash pickups + fare job (pick up pedestrian, drive to waypoint)
-- [x] Procedural WebAudio: engine hum, siren, gunshot, punch, pickup chime, mission jingle, ambient music; M mute
+- [x] Procedural WebAudio: engine hum, siren, gunshot, punch, pickup chime, mission jingle, ambient music; M mute; Cycle 19: radio — 3 switchable procedural stations (98.1 Sunset Drive, 101.4 Harbour Nights, 104.7 Palm Static), N cycles, HUD readout with freq + station + track
 - [x] Third-person chase camera, mouse orbit; sprint (Shift); R restart mission; Cycle 3: pitch half as sensitive (0.0012), capped at 0.5, and eases back to default 0.25 when the mouse is still (was 0.0022, cap 0.7, accumulated with no reset)
 - [x] Seeded RNG deterministic city per ?seed=
 - [x] Distinct districts: beach, port/industrial, park, downtown towers
 
 ## WOW (criteria 4–5: look, structure)
-- [x] Sun-soaked coastal art direction: warm sun, sky + fog, shadows, facade textures, palms, ocean, clouds
+- [x] Sun-soaked coastal art direction: warm sun, sky + fog, shadows, facade textures, palms, ocean, clouds; Cycle 19: fixed golden-hour grade (17:41 — purple-orange gradient sky, warm fog, low warm sun, lit windows), no day/night cycle
 - [x] Original names/story: Rico Vega, Lena Cruz, Marcus Thorne — nothing from Rockstar/GTA
 - [x] One clear job per file, names that read as the outline (city/player/vehicles/pedestrians/police/missions/combat/hud/audio/input/save/shots)
 - [x] Cover screenshot shows chase + wanted + minimap + mission objective in one frame (1-chase.jpg: port containers + yard on the left, 2 cruisers closing at ~18 m + 2-cruiser roadblock at ~42 m + close car + 2 parked cars + 3 stars + "The Drop: Pick up the crate at the port 96m" + "Roadblock ahead!" toast, minimap blips); Cycle 16: two gantry cranes + container stacks + apron fill the horizon at the end of the port road (was empty grass + fog)
@@ -1610,3 +1610,232 @@
 - NOT done by this builder (parent's job): push to GitHub, submit
   round 3 (needs Arie's explicit approval), kit 32→33 refresh
   (piped curl blocked), the #15 witness re-write.
+
+## Verification log (Cycle 19 — heli + dispatch + golden hour + radio, 2026-11-21)
+
+- Files changed: police.js (heli mesh/spawn/follow/cone, callsigns,
+  wanted ≥ 4 rule, clearPolice), hud.js (dispatch panel, air-unit chip,
+  minimap heli blip, radio readout, N in hints), city.js (dusk sky/fog/
+  sun/hemisphere, lit windows 0.35 → 0.55), audio.js (3 stations +
+  cycleStation + per-station chords/steps), input.js (KeyN),
+  main.js (KeyN handler, gameHour 17.69, debug heli field),
+  shots.js (chase stages spawnHeli(G, true)), index.html (#dispatch,
+  #airunit, #radio, clock 17:41, N in controls). M1–M9, player.js,
+  combat.js, vehicles.js, pedestrians.js untouched.
+  vendor/makefun-game.ts unchanged (sha256 dc671875…).
+- Harness ~/workspace/makefun/dev-gta6-cycle5/harness.mjs:
+  **312/312 PASS** (harness-c19f.log). §38 (18 checks): heli spawn
+  (AIR-1, group + cone + pool in scene, hover 44 m ahead + 34 m left,
+  9 m up), beam shaft 62% of the heli–player line, not in G.cars,
+  rotor spins, spawn rule (none at 3, spawns at 4, leaves at 3/0),
+  staged heli survives wanted 3 but leaves at 0, follows the player,
+  clearPolice removes it, callsigns (HARBOUR-11, TANGO-7, BULWARK-1/2),
+  chase-cover elevation < 8 deg + off-axis left of centre. §39 (4
+  checks): dusk sky gradient texture, warm fog 0xd89070, low warm sun
+  (0xffb060, 2.2, y 70), purple hemisphere. Radio radio-c19.mjs:
+  **9/9 PASS** (radio-c19.log): 6 Node-side + 3 live CDP (N switches
+  the readout + toast to Harbour Nights 101.4).
+- Render ~/workspace/makefun/dev-gta6-cycle5/render.mjs
+  (render-c19g/c19h.log, exit 0): all 4 shots re-rendered and LOOKED
+  at — chase: heli + tapered beam + pool, dispatch 5 live units,
+  "▲ AIR UNIT DEPLOYED", dusk cranes + lit towers, "The Drop: Pick up
+  the crate at the port 97m"; drive: dusk beach + race + rival,
+  "Checkpoint 1/5 · 30s · Rival 1/5", radio on one line; foot: hunt
+  live at dusk ("15m · 100 HP", beacon + ring, park left); mission:
+  courier + slim beacon ("25m · 20s · IN ZONE"). Render-arbiter fixes
+  during the cycle: full-length cone → dome (beam now 62% + pool),
+  end-on beam → faint disc (hover moved 30–34 m left, beam slants
+  diagonally), balloon wide end (radius 3.2 → 2.2, opacity 0.45 →
+  0.35), radio line wrapped (nowrap, 11 px). Only console problem:
+  favicon.ico 404 (benign, pre-existing).
+- CDP playtest-c17.mjs (race R1/R2) + regression chain (playtest6,
+  repro-c8, playtest-c10, playtest-c11): ALL PASS, exit 0 throughout
+  (playtest-c17-c19.log: R1 race completed live ~15.5 s game, R2
+  rival-wins fail live + retry re-opened; playtest6-c19.log: A1/A2/B1/
+  B2/B3/C all PASS; repro-c8-c19.log: B1-long stopped px=172 speed
+  0.8, B3-long PASS, "ALL PASS"; playtest-c10-c19.log: D1 opensRight,
+  shot fired, reset seen, step 1 live "Reach the safehouse" 271 m;
+  playtest-c11-c19.log: H1 opensRight, H2 live takedown ~6 punches,
+  M9 started). See CHANGELOG.md Cycle 19 for the numbers.
+- main.ts re-verified with the final screenshots: two runs
+  byte-identical (diff -r clean); dossier 882,061 B, text 137,066
+  chars (< 163,840 cap — margin 26,774 B); game/ 16 files,
+  806,851 B; index.html 7,614 B; vendor/makefun-game.ts unchanged
+  (sha256 dc671875…, matches the kit byte-for-byte); no http/https
+  refs in game/src + index.html. Screenshots in /output: 4 files
+  (1-chase 148,407 B, 2-foot 138,220 B, 3-drive 137,134 B,
+  4-mission 131,411 B), all 1280×800 JPEG ≤ 256 KiB.
+- Recording: #16 (01a1fe8b-6308-74a4-974f-de3e05aa52e2) started
+  2026-11-21 ~21:38 WIB, BEFORE this builder session began — every
+  edit in this cycle is witnessed by it.
+- NOT done by this builder (parent's job): push to GitHub, submit
+  round 5 (needs Arie's explicit approval).
+
+## Verification log (Cycle 20 — weapons + REP + cars + header/district/portraits, 2026-11-22)
+
+- Files changed: combat.js (WEAPONS table, switchWeapon, magText,
+  pellet spread, reload), hud.js (weapons row, REP line/bar, speed
+  line with car name + COND, mission header, district label, brief
+  portrait), missions.js (REP_RANKS/rankForRep/awardRep, mission
+  awards, SPEAKER_LENA, missionHeader), vehicles.js (name by colour,
+  condition + condTimer, enterCar reset, rival Falco Sport),
+  city.js (districtAt), save.js (rep persisted), input.js
+  (Digit1–4), main.js (Digit handlers, G.rep, debug weapon/rep/car
+  fields), index.html (#weapons, #rep/#rep-bar, #mission-head/
+  #mission-next, #district, #brief-portrait/#brief-name, toast
+  bottom 64 → 116 px, 1–4 in controls). player.js, pedestrians.js,
+  police.js, audio.js, shots.js, utils.js untouched.
+  vendor/makefun-game.ts unchanged (sha256 dc671875…, matches the
+  kit byte-for-byte).
+- Harness ~/workspace/makefun/dev-gta6-cycle5/harness.mjs:
+  **346/346 PASS** (harness-c20i3b.log): 312 Cycle 19 + 34 new.
+  §40 (14 checks): weapon table, switch rules, P9 spend, SMG drain
+  → reload → refill, shotgun 5 pellets = 70 dmg, FISTS punch,
+  magText RELOADING/∞. §41 (7 checks): rank thresholds + names,
+  award + rank-up toast, M1 completion pays 60 REP, save round-trip
+  + old-save compat. §42 (8 checks): name by colour, condition 100,
+  rival Falco Sport, enterCar reset, building hit 100→98. §43 (5
+  checks): six districts + boundary, header M1/M6, speaker Lena.
+  One Cycle-18 assertion updated (rival name Falco → Falco Sport);
+  the random car-name rng draw is gone, so the seeded spawn stream
+  shifted after spawnVehicles — city geometry untouched (buildCity
+  runs first).
+- Live CDP c20-live.mjs: **6/6 PASS** (c20-live.log): M1 brief
+  visible with LC portrait + "Lena Cruz · Garage Owner", Digit3→SMG
+  / Digit4→12G / Digit1→FISTS live, REP + district live, no console
+  errors except favicon 404.
+- Render ~/workspace/makefun/dev-gta6-cycle5/render.mjs
+  (render-c20b.log, exit 0): all 4 shots re-rendered and LOOKED at —
+  chase: heli + beam + pool + dispatch 5 units + dusk + JOB 4/9
+  header + REP bar + weapons row + "38 km/h · Vagabond LX · COND
+  100%"; drive: race + rival + "48 km/h · Comet GT · COND 100%" +
+  "Boardwalk · Solmar", toast clear of the speed panel; foot: hunt
+  live ("15m · 100 HP") + weapons row + JOB 8/9 + "Old Town ·
+  Solmar"; mission: courier + slim beacon ("25m · 20s · IN ZONE") +
+  "29 km/h · Sunrunner S · COND 100%" + "Downtown · Solmar".
+  Render-arbiter fix during the cycle: centred toast at bottom 64 px
+  covered the new weapons row and the speed number (drive "48 km/h"
+  hidden, mission "29 km/h" half-hidden) — toast moved to bottom
+  116 px; Boardwalk threshold 288 → 256 so the race road reads
+  Boardwalk. Only console problem: favicon.ico 404 (benign,
+  pre-existing).
+- CDP playtest-c17.mjs (playtest-c17-c20.log, exit 0): R1 live race
+  completion — opensRight=true, completed=true (storyDone + mode
+  complete), failed=false; CP1 3.7 s, CP2 3.9 s, CP3 6.8 s, CP4
+  10.1 s, finish ~15.5 s game. R2 rival-wins fail — idle player
+  failed live at game ~25 s with "Mission failed — The rival beat
+  you to the finish! Press R to retry."; R retry re-opened the race
+  live (sawFail=true retried=true).
+- Regression chain (exit 0 throughout): playtest6-c20.log (A1
+  warn+recover, A2 warning-before-fail "Lost the courier!", B1
+  roadblock final px=169 west of x=173, B2 Continue/save pos
+  (0,120), B3 punch/wanted, C touch-drag 0.25 → 0.49 → 0.43);
+  repro-c8-c20.log (B1-long px=172 speed 0.7, B3-long punch +
+  wanted, "ALL PASS"); playtest-c10-c20.log (D1 opensRight,
+  shotFired, resetSeen, step 1 live "Reach the safehouse" 272 m,
+  wanted 3); playtest-c11-c20.log (H1 opensRight, H2 ~8 punches,
+  wanted 0 throughout, M9 started). Note: the chain was killed once
+  by a runtime restart mid-playtest-c10 (no failure — log ends
+  mid-phase); part 2 (regress-c20b.sh) re-ran c10/c11/c17 clean.
+- main.ts re-verified with the final screenshots: two runs
+  byte-identical (diff -r clean); dossier 984,033 B, text 147,399
+  chars (< 163,840 cap — margin 16,441 B); game/ 16 files,
+  817,001 B; index.html 9,367 B; no http/https refs in game/src +
+  index.html. Screenshots in /output: 4 files (1-chase 168,184 B,
+  2-foot 152,286 B, 3-drive 153,648 B, 4-mission 149,910 B), all
+  1280×800 JPEG ≤ 256 KiB.
+- Recording: #17 (01a20167-dc95-7470-863e-644fb5aa7ec1) started
+  BEFORE this builder session began — every edit in this cycle is
+  witnessed by it. Recording NOT stopped by this builder.
+- NOT done by this builder (parent's job): push to GitHub, submit
+  round 5 (needs Arie's explicit approval).
+
+## Cycle 21 checklist (MUST/SHOULD/WOW — written BEFORE building, 2026-11-22)
+BIG LEAP per Arie ("nothing is impossible"): two NEW system dimensions, not polish.
+- MUST: (1) "Sunset Shells" — 12 ORIGINAL fixed collectibles (beach/park/port/downtown), HUD counter "SHELLS n/12", pickup pays REAL +$25 cash +10 REP each, no respawn; (2) stunt jumps — 5 marked ramp spots, air-time >0.6 s over one pays REAL +$50, HUD counter "JUMPS n/5", real ballistic air (vy + gravity, not a timer fake); (3) LoS search zone at wanted ≥3 — HUD chip "IN SIGHT" (red) vs "HIDDEN" (green), red search circle on the minimap, wanted decays FASTER while HIDDEN (5 s period vs 10 s, first decay 12 s vs 25 s); LoS = segment sampling vs building footprints (pointInBuilding), verified LIVE, not just harness — if the approximation looks wrong, ship distance-only status and SAY SO in the log.
+- MUST: dossier text ≤163,840 B — Cycle 20 baseline 147,399 B, margin 16,441 B; track after EVERY edit; stop if margin <1 KB. 4 screenshots ≤256 KiB, 1280×800 JPEG q88, real renders, LOOKED at. Determinism: 2× `node main.ts` byte-identical (durable dir under ~/workspace/makefun/, NOT /tmp). Harness stays 346/346 + new §44+ tests. Live CDP playtest proving shell pickup, a stunt jump, the LoS chip live + the existing regression chain, no failures.
+- SHOULD: shells/jumps visible in the 4 frames (shell at the foot spawn + mission spawn + race road; ramp wedge on the race road; LoS chip + search circle in the chase cover at wanted 3). No new missions, no garage/shops, no title-screen swap, no stats screen (idea 12 deferred — costs a gameplay frame).
+- WOW: the chase cover now reads heli + dispatch + LoS chip + search circle; the foot/mission/drive frames carry the SHELLS/JUMPS counters as a second exploration layer.
+- MUST NOT: touch the kit, the recording, or run `record --finish`; do NOT push, do NOT submit, do NOT message Arie. If a rule is ambiguous, STOP (BLOCKED).
+
+## Verification log (Cycle 21 — Sunset Shells + stunt jumps + LoS search zone, 2026-11-22)
+- Recording: #19 (01a202e5-82c9-70b8-b97e-f62e29eaf81b) started BEFORE
+  this builder session began — every edit below is witnessed by it.
+  Recording NOT stopped by this builder. NOTE (parent, 18:04 WIB):
+  Cycle 20 cannot be submitted (1-chase + 4-mission screenshots
+  unrecoverable) — Cycle 21 is now THE round-5 candidate.
+- Files changed: missions.js (SHELL_SPOTS/JUMP_SPOTS/spawnShells/
+  spawnJumps/updateShells, shellsGot/jumpsGot state) 25,329 → 28,780 B;
+  vehicles.js (car y/vy/airT/jumpCd/jumpSpot, launch + ballistic
+  landing, exitCar air reset) 10,686 → 12,212 B; police.js
+  (lineClear/policeSeen, seen state, faster hidden decay) 14,152 →
+  15,546 B; hud.js (#los chip, #side counter, minimap search circle)
+  12,830 → 13,753 B; game/index.html (#los/#side + CSS) 9,367 →
+  9,645 B; main.js (spawn/updateShells calls, debug shells/jumps/
+  seen/decay/carY/airT) 12,994 → 13,328 B; shots.js (?shot=hide
+  test staging) 7,565 → 8,427 B. player.js, combat.js, save.js,
+  city.js, audio.js, input.js, pedestrians.js, utils.js untouched.
+  vendor/makefun-game.ts untouched. Dev scripts: harness.mjs
+  (+25 Cycle 21 checks, §44–47), render.mjs/cdp.mjs (texts() +
+  side/los), c21-live.mjs, c21-live2.mjs, c21-live3.mjs,
+  probe-hide.mjs (real-city spot search).
+- Harness ~/workspace/makefun/dev-gta6-cycle5/harness.mjs:
+  **371/371 PASS** (harness-c21b.log): 346 Cycle 20 + 25 new.
+  §44 (6 checks): shells. §45 (7 checks): jumps. §46 (9 checks):
+  LoS + decay. §47 (5 checks): hide geometry on the REAL seed-1
+  city (tower x 86..106, z 84..103; (110,98) unseen with all 4
+  cruisers in range; control (64,98) seen).
+- Live CDP c21-live.mjs: **7/8 PASS** (c21-live.log): A shell
+  pickup live (shells 1, $275, REP 10, toast), B stunt jump live
+  (max carY 1.15 m, jumps 1/5, $325), C IN SIGHT chip live
+  (wanted 3) — HIDDEN never flipped (car wedged at (164,-168),
+  cruisers in clear sight; maneuver failure, not a LoS bug).
+- Live CDP c21-live2.mjs: **2/4** (c21-live2.log): on-foot escape
+  attempt FAILED — player WASTED at (0,67) after 5.8 s game time
+  (cruiser rams + cop tackles at wanted 3 on the open road).
+- Live CDP c21-live3.mjs: **4/4 PASS** (c21-live3.log): ?shot=hide
+  opens wanted 3 / 4 cruisers / no roadblock; chip "○ HIDDEN" live
+  1 s after ready (cruisers at the tower's west face); sight
+  returned later as cruisers rounded the corners (wanted stayed 3
+  — hidden window too short for the 12 s decay clock, §46 covers
+  the decay). Hide frame renders/hide.jpg.
+- Render ~/workspace/makefun/dev-gta6-cycle5/render.mjs
+  (render-c21.log, exit 0): all 4 shots re-rendered and LOOKED at —
+  chase: heli + beam + pool + dispatch 5 units + "◉ IN SIGHT" red
+  + red search circle on the minimap + SHELLS 0/12 · JUMPS 0/5;
+  foot: $275, REP 10/300, "SHELLS 1/12 · JUMPS 0/5" + live toast
+  + hunt; drive: pink shell + orange ramp at checkpoint 1 + race
+  + rival; mission: $275, REP 10, "SHELLS 1/12" + toast + courier
+  "25m · 20s · IN ZONE". Only console problem: favicon.ico 404
+  (benign, pre-existing).
+- CDP playtest-c17.mjs + regression chain (exit 0 throughout; part 1
+  killed once by a runtime restart mid-c11, part 2 re-ran c11/c17
+  clean, Cycle 20 precedent): playtest6 (playtest6-c21.log): A1
+  warn+recover PASS, A2 warning-before-fail PASS ("Lost the
+  courier!"), B1 roadblock smoke (final px=172, never crossed
+  x=173) PASS, B2 Continue/save PASS (mode=play, pos restored
+  (0,120)), B3 punch/wanted PASS, C touch-drag pitch PASS (0.25 →
+  0.49, damped toward 0.25, final 0.43); repro-c8 (repro-c8-c21.log):
+  B1-long stopped at px=172, speed 0.7 PASS, B3-long punch landed,
+  wanted rose PASS, "ALL PASS"; playtest-c10 (playtest-c10-c21.log):
+  D1 opensRight=true, shotFired=true, resetSeen=true, completed
+  (step 1 live)=true, mode=play, "Clean Getaway: Reach the
+  safehouse" 273 m, wanted 3 PASS; playtest-c11
+  (playtest-c11-c21.log): H1 opensRight=true, H2 live takedown —
+  ~7 punches, wanted 0 throughout, M9 started ("Boardwalk Rush:
+  Steal a car") PASS; playtest-c17 (playtest-c17-c21.log): R1 live
+  race completion — opensRight=true, completed=true (storyDone +
+  mode complete), failed=false PASS; R2 rival-wins fail — idle
+  player failed live with "The rival beat you to the finish!", R
+  retry re-opened the race live (sawFail=true retried=true) PASS.
+  (Side note: the R1 race car crosses the (-88,256) ramp mid-race —
+  the jump did not disturb the race; checkpoints still hit and the
+  race completed.)
+- main.ts re-verified with the final screenshots: two runs
+  byte-identical (diff -r clean); dossier 996,410 B, text 155,305
+  chars (< 163,840 cap — margin 8,535 B); game/ 16 files,
+  824,907 B. Screenshots in /output: 4 files (1-chase 170,364 B,
+  2-foot 152,579 B, 3-drive 153,803 B, 4-mission 149,897 B), all
+  1280×800 JPEG ≤ 256 KiB.
+- NOT done by this builder (parent's job): push to GitHub, submit
+  round 5 (needs Arie's explicit approval).

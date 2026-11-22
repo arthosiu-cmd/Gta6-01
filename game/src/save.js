@@ -9,6 +9,7 @@ export function saveGame(state) {
       money: Math.round(state.money),
       missionIndex: state.missions.index,
       health: Math.round(state.health),
+      rep: Math.round(state.rep || 0),
       px: +state.player.pos.x.toFixed(1),
       pz: +state.player.pos.z.toFixed(1),
       angle: +state.player.angle.toFixed(2),
@@ -37,6 +38,7 @@ export function loadSave() {
 export function applySave(state, data) {
   state.money = data.money;
   state.health = data.health;
+  state.rep = data.rep || 0;
   state.missions.index = data.missionIndex;
   state.missions.storyDone = !!data.storyDone;
   state.player.pos.x = data.px;

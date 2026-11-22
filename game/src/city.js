@@ -17,6 +17,16 @@ export const PLACES = {
   plaza: { x: 0, z: 0, name: 'Solmar Plaza' },
 };
 
+// District label for the HUD: where in Solmar you are, by quadrant.
+export function districtAt(x, z) {
+  if (z >= 256) return 'Boardwalk';
+  if (x >= 160 && z <= -160) return 'Harbour Port';
+  if (x <= -160) return 'Parkside';
+  if (z <= -160) return 'North Yards';
+  if (x >= 0) return 'Downtown';
+  return 'Old Town';
+}
+
 function facadeTexture(rng, baseColor, litRatio) {
   const canvas = document.createElement('canvas');
   canvas.width = 128; canvas.height = 256;
@@ -97,10 +107,24 @@ export function buildCity(scene, rng) {
     bounds: CITY_HALF,
   };
 
-  scene.background = new THREE.Color(0x87bfe8);
-  scene.fog = new THREE.Fog(0x9fc8e8, 240, 780);
-  const sun = new THREE.DirectionalLight(0xfff1c4, 2.6);
-  sun.position.set(180, 260, 120);
+  // Golden hour (~17:41): a fixed dusk grade, never a moving cycle.
+  // Vertical gradient sky: deep purple overhead, orange at the horizon.
+  const skyCanvas = document.createElement('canvas');
+  skyCanvas.width = 4; skyCanvas.height = 256;
+  const skyCtx = skyCanvas.getContext('2d');
+  const skyGrad = skyCtx.createLinearGradient(0, 0, 0, 256);
+  skyGrad.addColorStop(0, '#2e2a55');
+  skyGrad.addColorStop(0.55, '#7a4a7a');
+  skyGrad.addColorStop(0.78, '#e8906a');
+  skyGrad.addColorStop(1, '#f7b267');
+  skyCtx.fillStyle = skyGrad;
+  skyCtx.fillRect(0, 0, 4, 256);
+  const skyTex = new THREE.CanvasTexture(skyCanvas);
+  skyTex.colorSpace = THREE.SRGBColorSpace;
+  scene.background = skyTex;
+  scene.fog = new THREE.Fog(0xd89070, 240, 780);
+  const sun = new THREE.DirectionalLight(0xffb060, 2.2);
+  sun.position.set(-260, 70, 90);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.camera.left = -340; sun.shadow.camera.right = 340;
@@ -108,7 +132,7 @@ export function buildCity(scene, rng) {
   sun.shadow.camera.far = 900;
   sun.shadow.bias = -0.0006;
   scene.add(sun);
-  scene.add(new THREE.HemisphereLight(0xbfe3ff, 0x8a7a5a, 0.9));
+  scene.add(new THREE.HemisphereLight(0x9a7ab8, 0x6a4a3a, 0.75));
 
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(1100, 1100),
@@ -331,7 +355,7 @@ export function buildCity(scene, rng) {
   scene.add(surf);
 
   const palette = ['#e8b48a', '#d98a7a', '#a8c8d8', '#e8d8a8', '#c8a8d8', '#f0e0c8', '#88a8c8', '#d8b090'];
-  const facadeCache = palette.map((c) => facadeTexture(rng, c, 0.35));
+  const facadeCache = palette.map((c) => facadeTexture(rng, c, 0.55));
   const boxGeo = new THREE.BoxGeometry(1, 1, 1);
   const roofMat = new THREE.MeshLambertMaterial({ color: 0x5a5f66 });
   for (let bx = 0; bx < ROAD_COORDS.length - 1; bx++) {

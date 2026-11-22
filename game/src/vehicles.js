@@ -3,7 +3,9 @@ import { ROAD_COORDS, nsGreen, nearestRoadCoord, collideBuildings, clampToCity }
 import { clamp, damp, turnToward, dist2D } from './utils.js';
 
 const CAR_COLORS = [0xc83a2e, 0x2e7fc8, 0xe8c832, 0x3a9e4e, 0xe8e8e8, 0x2c2f33, 0xd86a2e, 0x7a4ec8];
-const CAR_NAMES = ['Comet', 'Vagabond', 'Sunrunner', 'Marlin', 'Paseo', 'Dune', 'Falco', 'Breeze'];
+// Model name is fixed by paint colour, so the same car always has the
+// same name (original names — no leader's model names).
+const CAR_NAMES = ['Comet GT', 'Vagabond LX', 'Sunrunner S', 'Marlin Coupe', 'Paseo Classic', 'Dune Runner', 'Falco Sport', 'Breeze Cabrio'];
 
 export function buildCarMesh(color, isPolice = false) {
   const group = new THREE.Group();
@@ -43,7 +45,14 @@ function makeCar(G, x, z, angle, color, kind) {
   G.scene.add(mesh);
   return {
     mesh, angle, speed: 0, kind,
-    color, name: CAR_NAMES[G.rng.int(0, CAR_NAMES.length - 1)],
+    color, name: CAR_NAMES[CAR_COLORS.indexOf(color)],
+    // CONDITION %: 100 fresh, falls with collisions/rams, resets to
+    // 100 when you steal a fresh car (enterCar). condTimer rate-limits
+    // the damage so one long scrape is one hit, not one per frame.
+    condition: 100, condTimer: 0,
+    // Stunt-jump air state (player car only): y/vy integrate in
+    // updatePlayerCar; airT is the airborne time of the current hop.
+    y: 0, vy: 0, airT: 0, jumpCd: 0, jumpSpot: null,
     // Traffic AI state:
     axis: 'x', fixed: 0, along: 0, dir: 1, cruise: G.rng.range(7, 11),
     stopped: false, driver: null,
@@ -145,6 +154,7 @@ export function updatePlayerCar(G, dt) {
   const car = G.player.car;
   if (!car) return;
   const input = G.input;
+  car.condTimer = Math.max(0, (car.condTimer || 0) - dt);
   const accel = input.isDown('KeyW') ? 14 : 0;
   const brake = input.isDown('KeyS') ? 18 : 0;
   const steerInput = (input.isDown('KeyA') ? 1 : 0) - (input.isDown('KeyD') ? 1 : 0);
@@ -155,11 +165,28 @@ export function updatePlayerCar(G, dt) {
   car.speed = clamp(car.speed, -10, 30);
   const steer = steerInput * 1.9 * clamp(Math.abs(car.speed) / 8, 0, 1) * (reversing ? -1 : 1);
   car.angle += steer * dt * (car.speed >= 0 ? 1 : -1) * (car.speed > 0 ? 1 : -1);
+  // Stunt jump: cross a marked ramp at 15+ m/s and the car launches
+  // (vy 7, gravity 18 -> ~0.78 s airborne, over the 0.6 s bar).
+  car.jumpCd = Math.max(0, (car.jumpCd || 0) - dt);
+  if (car.y === 0 && Math.abs(car.speed) >= 15 && G.missions.jumps) {
+    for (const j of G.missions.jumps) {
+      if (!j.done && dist2D(car.mesh.position.x, car.mesh.position.z, j.x, j.z) < 4) {
+        car.vy = 7; car.airT = 0; car.jumpCd = 2; car.jumpSpot = j;
+        break;
+      }
+    }
+  }
   const fx = Math.sin(car.angle), fz = Math.cos(car.angle);
   let nx = car.mesh.position.x + fx * car.speed * dt;
   let nz = car.mesh.position.z + fz * car.speed * dt;
   const fixed = collideBuildings(G.city, nx, nz, 2.2);
-  if (fixed.hit) car.speed *= 0.55;
+  if (fixed.hit) {
+    car.speed *= 0.55;
+    if (car.condTimer <= 0 && Math.abs(car.speed) > 2) {
+      car.condition = Math.max(0, car.condition - 2);
+      car.condTimer = 0.5;
+    }
+  }
   nx = clampToCity(fixed.x);
   nz = clampToCity(fixed.z);
   // Beach water stops cars at z > 348.
@@ -173,6 +200,10 @@ export function updatePlayerCar(G, dt) {
     const dx = nx - other.mesh.position.x;
     const dz = nz - other.mesh.position.z;
     if (Math.hypot(dx, dz) < 3.6) {
+      if (car.condTimer <= 0) {
+        car.condition = Math.max(0, car.condition - 5);
+        car.condTimer = 0.5;
+      }
       if (od >= 3.6) {
         // Was outside, stepped in: reject the step.
         nx = car.mesh.position.x;
@@ -190,6 +221,30 @@ export function updatePlayerCar(G, dt) {
   car.mesh.position.x = nx;
   car.mesh.position.z = nz;
   car.mesh.rotation.y = car.angle;
+  // Ballistic hop: gravity pulls the car back down; landing after
+  // >0.6 s airborne over a marked ramp pays +$50, once per ramp.
+  if (car.vy !== 0 || car.y > 0) {
+    car.vy -= 18 * dt;
+    car.y += car.vy * dt;
+    car.airT += dt;
+    car.mesh.rotation.x = clamp(-car.vy * 0.02, -0.15, 0.15);
+    if (car.y <= 0) {
+      car.y = 0;
+      const air = car.airT;
+      car.vy = 0; car.airT = 0;
+      car.mesh.rotation.x = 0;
+      const j = car.jumpSpot;
+      car.jumpSpot = null;
+      if (j && !j.done && air > 0.6) {
+        j.done = true;
+        G.missions.jumpsGot++;
+        G.money += 50;
+        G.audio.pickup();
+        G.toast(`STUNT JUMP +$50 (${G.missions.jumpsGot}/5)`);
+      }
+    }
+  }
+  car.mesh.position.y = car.y;
   // Player follows the car.
   G.player.pos.copy(car.mesh.position);
   G.player.angle = car.angle;
@@ -214,6 +269,8 @@ export function enterCar(G, car) {
   const wasTraffic = car.kind === 'traffic';
   car.kind = 'player';
   car.speed = 0;
+  car.condition = 100;
+  car.condTimer = 0;
   G.player.car = car;
   G.player.onFoot = false;
   G.player.mesh.visible = false;
@@ -231,6 +288,9 @@ export function exitCar(G) {
   if (!car) return;
   car.kind = 'parked';
   car.speed = 0;
+  car.y = 0; car.vy = 0; car.airT = 0; car.jumpSpot = null;
+  car.mesh.position.y = 0;
+  car.mesh.rotation.x = 0;
   G.player.car = null;
   G.player.onFoot = true;
   G.player.mesh.visible = true;
@@ -249,10 +309,10 @@ export function spawnRivalCar(G, x, z, color = 0xd86a2e) {
   G.scene.add(mesh);
   const car = {
     mesh, angle: Math.PI / 2, speed: 0, kind: 'rival',
-    color, name: 'Falco',
+    color, name: 'Falco Sport',
     axis: 'x', fixed: z, along: x, dir: 1, cruise: 0,
     stopped: false, driver: null,
-    health: 100,
+    health: 100, condition: 100, condTimer: 0,
   };
   G.cars.push(car);
   return car;

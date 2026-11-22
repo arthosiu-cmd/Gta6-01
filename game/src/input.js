@@ -11,7 +11,8 @@ export function createInput(canvas) {
 
   const GAME_KEYS = [
     'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight',
-    'KeyE', 'KeyF', 'KeyQ', 'KeyR', 'KeyM', 'Space', 'Escape',
+    'KeyE', 'KeyF', 'KeyQ', 'KeyR', 'KeyM', 'KeyN', 'Space', 'Escape',
+    'Digit1', 'Digit2', 'Digit3', 'Digit4',
   ];
 
   window.addEventListener('keydown', (e) => {

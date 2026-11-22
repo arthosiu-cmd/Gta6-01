@@ -1,4 +1,16 @@
 // chord-pad loop plays as ambient music. M toggles mute.
+// Radio stations: procedural only (no audio files, no network). Each
+// station has its own chord set + step length, so switching stations
+// changes what the ambient music plays.
+const STATIONS = [
+  { freq: '98.1', name: 'Sunset Drive', track: 'Golden Coastline',
+    chords: [[220, 261.6, 329.6], [174.6, 220, 261.6], [196, 261.6, 329.6], [196, 246.9, 293.7]], step: 4 },
+  { freq: '101.4', name: 'Harbour Nights', track: 'Container Lights',
+    chords: [[220, 261.6, 311.1], [196, 233.1, 293.7], [174.6, 220, 261.6], [146.8, 220, 277.2]], step: 3.2 },
+  { freq: '104.7', name: 'Palm Static', track: 'Neon Palms',
+    chords: [[261.6, 329.6, 392], [293.7, 369.9, 440], [220, 277.2, 329.6], [246.9, 311.1, 370]], step: 2.6 },
+];
+
 export function createAudio() {
   const audio = {
     ctx: null,
@@ -11,7 +23,16 @@ export function createAudio() {
     sirenGain: null,
     musicTimer: 0,
     musicStep: 0,
+    stationIndex: 0,
     ready: false,
+  };
+
+  audio.stations = STATIONS;
+  audio.currentStation = () => STATIONS[audio.stationIndex];
+  audio.cycleStation = () => {
+    audio.stationIndex = (audio.stationIndex + 1) % STATIONS.length;
+    audio.musicStep = 0;
+    audio.musicTimer = 0;
   };
 
   audio.init = () => {
@@ -73,8 +94,9 @@ export function createAudio() {
     audio.sirenGain.gain.setTargetAtTime(sirenLevel * 0.045, t, 0.2);
     audio.musicTimer -= dt;
     if (audio.musicTimer <= 0) {
-      audio.musicTimer = 4;
-      const chords = [[220, 261.6, 329.6], [174.6, 220, 261.6], [196, 261.6, 329.6], [196, 246.9, 293.7]];
+      const station = STATIONS[audio.stationIndex];
+      audio.musicTimer = station.step;
+      const chords = station.chords;
       const chord = chords[audio.musicStep % chords.length];
       audio.musicStep++;
       for (const freq of chord) {

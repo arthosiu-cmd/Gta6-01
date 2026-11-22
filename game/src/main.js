@@ -8,8 +8,8 @@ import { createPlayerState, updatePlayerOnFoot, updateCamera, snapCamera } from 
 import { spawnVehicles, updateTraffic, updatePlayerCar, nearestCar, enterCar, exitCar } from './vehicles.js';
 import { spawnPedestrians, updatePedestrians, scarePeds } from './pedestrians.js';
 import { createPoliceState, updatePolice, clearPolice } from './police.js';
-import { createCombatState, tryPunch, tryShoot, updateCombat } from './combat.js';
-import { createMissionsState, startMission, updateMissions, restartMission, spawnPickups, updatePickups, spawnFareCustomer, updateFare } from './missions.js';
+import { createCombatState, tryPunch, tryShoot, switchWeapon, updateCombat } from './combat.js';
+import { createMissionsState, startMission, updateMissions, restartMission, spawnPickups, updatePickups, spawnShells, updateShells, spawnJumps, spawnFareCustomer, updateFare } from './missions.js';
 import { createHud, updateHud } from './hud.js';
 import { applyShotMode, warmUpWorld } from './shots.js';
 
@@ -37,10 +37,11 @@ window.addEventListener('resize', () => {
 const G = {
   scene, camera, renderer, rng, seed: params.seed,
   time: 0,
-  gameHour: 9.5,
+  gameHour: 17.69,
   mode: 'start',
   money: 250,
   health: 100,
+  rep: 0,
   wanted: 0,
   camYaw: Math.PI,
   camOrbit: 0,
@@ -112,6 +113,8 @@ G.hud = createHud();
 spawnVehicles(G);
 spawnPedestrians(G, 26);
 spawnPickups(G, 12);
+spawnShells(G);
+spawnJumps(G);
 spawnFareCustomer(G);
 
 const startScreen = document.getElementById('start-screen');
@@ -222,6 +225,12 @@ function frame() {
       G.audio.setMuted(!G.audio.muted);
       G.toast(G.audio.muted ? 'Sound off (M to turn back on)' : 'Sound on');
     }
+    // Radio station.
+    if (input.wasPressed('KeyN')) {
+      G.audio.cycleStation();
+      const st = G.audio.currentStation();
+      G.toast(`Radio: SOLMAR FM ${st.freq} · ${st.name} — '${st.track}'`);
+    }
     // Restart the current mission.
     if (input.wasPressed('KeyR')) restartMission(G);
 
@@ -237,6 +246,10 @@ function frame() {
     // Combat.
     if (input.wasPressed('KeyF')) tryPunch(G);
     if (input.clicked || input.isDown('Space')) tryShoot(G);
+    // Weapon slots 1–4.
+    for (let i = 0; i < 4; i++) {
+      if (input.wasPressed(`Digit${i + 1}`)) switchWeapon(G, i);
+    }
 
     // Movement.
     if (G.player.onFoot) updatePlayerOnFoot(G, dt);
@@ -248,6 +261,7 @@ function frame() {
     updateCombat(G, dt);
     updateMissions(G, dt);
     updatePickups(G, dt);
+    updateShells(G, dt);
     updateFare(G, dt);
 
     // Slow health regen when nobody is after you.
@@ -305,6 +319,7 @@ if (new URLSearchParams(window.location.search).get('debug') === '1') {
       speed: car ? +car.speed.toFixed(1) : 0,
       wanted: G.wanted,
       police: G.police.cars.length,
+      heli: G.police.heli ? [Math.round(G.police.heli.group.position.x), Math.round(G.police.heli.group.position.y), Math.round(G.police.heli.group.position.z)] : null,
       pc: G.police.cars.map((c) => [Math.round(c.mesh.position.x), Math.round(c.mesh.position.z), c.roadblock ? 'rb' : 'chase']),
       peds: G.peds.slice(0, 6).map((p) => [Math.round(p.pos.x), Math.round(p.pos.z)]),
       park: G.cars.filter((c) => c.kind === 'parked').slice(0, 4).map((c) => [Math.round(c.mesh.position.x), Math.round(c.mesh.position.z)]),
@@ -320,6 +335,16 @@ if (new URLSearchParams(window.location.search).get('debug') === '1') {
       hunt: G.missions.hunt ? [Math.round(G.missions.hunt.ped.mesh.position.x), Math.round(G.missions.hunt.ped.mesh.position.z), Math.round(G.missions.hunt.ped.health), G.missions.hunt.ped.state, +G.missions.hunt.lose.toFixed(1)] : null,
       race: G.missions.race ? [G.missions.race.idx, +G.missions.timer.toFixed(1)] : null,
       rival: G.missions.rival ? [G.missions.rival.idx, Math.round(G.missions.rival.car.mesh.position.x), Math.round(G.missions.rival.car.mesh.position.z)] : null,
+      weapon: G.combat.weapon,
+      mag: G.combat.mags[G.combat.weapon],
+      reload: +G.combat.reloadTimer.toFixed(2),
+      rep: G.rep,
+      shells: G.missions.shellsGot, jumps: G.missions.jumpsGot,
+      seen: G.police.seen, decay: +G.police.decayTimer.toFixed(1),
+      carY: car ? +car.mesh.position.y.toFixed(2) : 0,
+      airT: car ? +((car.airT || 0)).toFixed(2) : 0,
+      carName: G.player.car ? G.player.car.name : null,
+      carCond: G.player.car ? Math.round(G.player.car.condition) : null,
       obj: document.getElementById('objective-text') ? document.getElementById('objective-text').textContent : '',
       objDist: document.getElementById('objective-dist') ? document.getElementById('objective-dist').textContent : '',
       time: +G.time.toFixed(1),

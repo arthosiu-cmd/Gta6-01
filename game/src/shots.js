@@ -1,7 +1,7 @@
 // shots.js — deterministic staged scenes for screenshots.
 import { PLACES } from './city.js';
 import { spawnPlayerCar } from './vehicles.js';
-import { spawnPoliceCarAt } from './police.js';
+import { spawnPoliceCarAt, spawnHeli } from './police.js';
 import { startMission, startMissionStep } from './missions.js';
 
 // staging, never from the live game).
@@ -147,6 +147,8 @@ export function applyShotMode(G, shot) {
     }
     startMission(G, 3);
     G.toast('Police on your tail — lose them!');
+    // Air unit staged for the cover: heli overhead, cone on the player.
+    spawnHeli(G, true);
     hideBriefForShot(G);
     return true;
   }
@@ -169,6 +171,26 @@ export function applyShotMode(G, shot) {
     parkCar(G, 9, 100, 0);
     parkCar(G, -9, 102, Math.PI);
     startMissionStep(G, 5, 1);
+    hideBriefForShot(G);
+    return true;
+  }
+  if (shot === 'hide') {
+    // LoS test staging (like ?shot=escape, not a submitted shot):
+    // the player car sits in the gap east of the downtown tower
+    // (footprint x 86..106, z 84..103, seed 1) at (110,98), with 4
+    // cruisers staged on the west/south roads behind it. No
+    // roadblock (the player is 30 m off any road), no foot cops
+    // (the player is in a car), no heli (wanted 3). The cruisers
+    // spawn at speed 0 so the 2 s warm-up only brings them to the
+    // tower's west face instead of around its corners.
+    spawnPlayerCar(G, 110, 98, Math.PI / 2, 0x2e7fc8);
+    G.camYaw = Math.PI / 2 + Math.PI;
+    G.camOrbit = 0;
+    G.wanted = 3;
+    spawnPoliceCarAt(G, 64, 64, 0);
+    spawnPoliceCarAt(G, 64, 96, 0);
+    spawnPoliceCarAt(G, 64, 128, 0);
+    spawnPoliceCarAt(G, 96, 64, 0);
     hideBriefForShot(G);
     return true;
   }

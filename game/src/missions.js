@@ -82,6 +82,38 @@ export const MISSIONS = [
   },
 ];
 
+// REP / Respect rank ladder — original names, earned from jobs and
+// fares. A mission pays 50 + reward/10 REP; the M7 lay-low escape
+// pays a +25 bonus on top. rankForRep is the single source of truth
+// for the HUD bar and the save file.
+export const REP_RANKS = [
+  { xp: 0, name: 'ROOKIE' },
+  { xp: 300, name: 'GETAWAY DRIVER' },
+  { xp: 800, name: 'STREET HUSTLER' },
+  { xp: 1600, name: 'BAY RUNNER' },
+  { xp: 2600, name: 'SOLMAR LEGEND' },
+];
+
+export function rankForRep(rep) {
+  let rank = 0;
+  for (let i = 0; i < REP_RANKS.length; i++) {
+    if (rep >= REP_RANKS[i].xp) rank = i;
+  }
+  const next = REP_RANKS[rank + 1] || null;
+  return {
+    rank, name: REP_RANKS[rank].name, xp: rep, floor: REP_RANKS[rank].xp,
+    next: next ? next.xp : null, nextName: next ? next.name : null,
+  };
+}
+
+export function awardRep(G, xp) {
+  const before = rankForRep(G.rep || 0).rank;
+  G.rep = (G.rep || 0) + xp;
+  const r = rankForRep(G.rep);
+  if (r.rank > before) G.toast(`Rank up — you are now ${r.name}!`);
+  return r;
+}
+
 export function createMissionsState(scene) {
   // range. Long-range wayfinding still has the minimap blip +
   // that reads as a game).
@@ -137,6 +169,7 @@ export function createMissionsState(scene) {
     hunt: null,
     // Cash pickups and the fare job live here too.
     pickups: [],
+    shells: [], shellsGot: 0, jumps: [], jumpsGot: 0,
     fare: { state: 'waiting', ped: null, dest: null, timer: 0 },
     fareMarker: null,
   };
@@ -150,6 +183,24 @@ export function currentStep(G) {
   const m = currentMission(G);
   return m ? m.steps[G.missions.step] : null;
 }
+
+// Mission header data for the HUD: JOB x/9, STAGE pips, NEXT step.
+export function missionHeader(G) {
+  const m = currentMission(G);
+  const step = currentStep(G);
+  if (!G.missions.active || !m || !step) return null;
+  const next = m.steps[G.missions.step + 1];
+  return {
+    job: G.missions.index + 1, total: MISSIONS.length, title: m.title,
+    stage: G.missions.step + 1, stages: m.steps.length,
+    next: next ? next.text : 'Finish the job',
+  };
+}
+
+// Dialogue portrait speaker: Lena Cruz runs the garage and hands out
+// every job, so every mission brief is hers. Abstract disc + initials
+// (never a drawn face).
+export const SPEAKER_LENA = { initials: 'LC', name: 'Lena Cruz', role: 'Garage Owner', color: '#2e7fc8' };
 
 function stepTime(step) {
   return (step && (step.time || (step.race && step.race.time))) || 0;
@@ -191,7 +242,7 @@ export function startMission(G, index) {
   if (stepTime(step)) G.missions.timer = stepTime(step);
   if (step.race) { showRaceMarkers(G, step.race.points); spawnRival(G); }
   G.toast(`${m.title} — ${m.steps[0].text}`);
-  G.hud.showBrief(m.title, m.brief);
+  G.hud.showBrief(m.title, m.brief, SPEAKER_LENA);
   updateBeacon(G);
 }
 
@@ -214,7 +265,7 @@ export function startMissionStep(G, index, stepIdx) {
   if (stepTime(step)) G.missions.timer = stepTime(step);
   if (step.race) { showRaceMarkers(G, step.race.points); spawnRival(G); }
   G.toast(`${m.title} — ${step.text}`);
-  G.hud.showBrief(m.title, m.brief);
+  G.hud.showBrief(m.title, m.brief, SPEAKER_LENA);
   updateBeacon(G);
 }
 
@@ -365,9 +416,10 @@ function completeStep(G) {
   }
   // Mission complete.
   G.money += m.reward;
+  awardRep(G, 50 + Math.round(m.reward / 10) + (m.id === 7 ? 25 : 0));
   G.audio.missionJingle();
   G.toast(`${m.title} complete! +$${m.reward}`);
-  G.hud.showBrief(`${m.title} complete`, `Lena paid you $${m.reward}.`);
+  G.hud.showBrief(`${m.title} complete`, `Lena paid you $${m.reward}.`, SPEAKER_LENA);
   G.save();
   if (G.missions.index + 1 < MISSIONS.length) {
     startMission(G, G.missions.index + 1);
@@ -579,7 +631,7 @@ export function failMission(G, reason) {
   clearRival(G);
   hideRaceMarkers(G);
   updateBeacon(G);
-  G.hud.showBrief('Mission failed', `${reason} Press R to retry.`);
+  G.hud.showBrief('Mission failed', `${reason} Press R to retry.`, SPEAKER_LENA);
   G.toast(`Mission failed — ${reason} Press R to retry.`);
 }
 
@@ -626,6 +678,76 @@ export function updatePickups(G, dt) {
       G.money += 50;
       G.audio.pickup();
       G.toast('Cash pickup +$50');
+    }
+  }
+}
+
+// Sunset Shells: 12 ORIGINAL fixed collectibles across coastal
+// Solmar (beach, park, port, downtown) — our own theme, not a
+// leader's. A shell pays real +$25 cash +10 REP, once each (no
+// respawn, unlike cash pickups). Stunt jumps: 5 marked ramp spots;
+// crossing one in a car at 15+ m/s launches the car (vehicles.js
+// ballistic air) and landing after >0.6 s airborne pays +$50.
+export const SHELL_SPOTS = [
+  [-64, 320], [64, 320], [-96, 256], [-128, 224], [-192, 192],
+  [192, -224], [256, -192], [0, 64], [64, 0], [-64, -64],
+  [128, 128], [0, 107],
+];
+export const JUMP_SPOTS = [
+  { x: -88, z: 256, a: Math.PI / 2 },
+  { x: 0, z: 160, a: Math.PI },
+  { x: 192, z: 64, a: Math.PI / 2 },
+  { x: -64, z: -128, a: -Math.PI / 2 },
+  { x: 128, z: -64, a: 0 },
+];
+
+export function spawnShells(G) {
+  const geo = new THREE.OctahedronGeometry(0.55);
+  const mat = new THREE.MeshLambertMaterial({ color: 0xff7fb0, emissive: 0x8a2a50 });
+  for (const [x, z] of SHELL_SPOTS) {
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, 1.0, z);
+    G.scene.add(mesh);
+    G.missions.shells.push({ mesh, taken: false });
+  }
+}
+
+export function spawnJumps(G) {
+  const wedgeGeo = new THREE.BoxGeometry(3.6, 0.35, 5);
+  const wedgeMat = new THREE.MeshLambertMaterial({ color: 0xff8c2e });
+  const plateGeo = new THREE.PlaneGeometry(5, 7);
+  const plateMat = new THREE.MeshBasicMaterial({ color: 0xffd23e, transparent: true, opacity: 0.55 });
+  for (const s of JUMP_SPOTS) {
+    const group = new THREE.Group();
+    group.position.set(s.x, 0, s.z);
+    group.rotation.y = s.a;
+    const plate = new THREE.Mesh(plateGeo, plateMat);
+    plate.rotation.x = -Math.PI / 2;
+    plate.position.y = 0.06;
+    group.add(plate);
+    const wedge = new THREE.Mesh(wedgeGeo, wedgeMat);
+    wedge.position.set(0, 0.55, 0.4);
+    wedge.rotation.x = -0.32;
+    wedge.castShadow = true;
+    group.add(wedge);
+    G.scene.add(group);
+    G.missions.jumps.push({ x: s.x, z: s.z, done: false });
+  }
+}
+
+export function updateShells(G, dt) {
+  for (const s of G.missions.shells) {
+    if (s.taken) continue;
+    s.mesh.rotation.y += dt * 2;
+    s.mesh.position.y = 1.0 + Math.sin(G.time * 2 + s.mesh.position.x) * 0.2;
+    if (dist2D(G.player.pos.x, G.player.pos.z, s.mesh.position.x, s.mesh.position.z) < 2.4) {
+      s.taken = true;
+      s.mesh.visible = false;
+      G.missions.shellsGot++;
+      G.money += 25;
+      awardRep(G, 10);
+      G.audio.pickup();
+      G.toast(`Sunset Shell ${G.missions.shellsGot}/12 +$25 +10 REP`);
     }
   }
 }
@@ -677,6 +799,7 @@ export function updateFare(G, dt) {
       fare.state = 'done';
       fare.timer = 20;
       G.money += 80;
+      awardRep(G, 10);
       G.audio.missionJingle();
       G.toast('Fare complete! +$80');
     }

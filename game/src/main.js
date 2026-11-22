@@ -10,6 +10,7 @@ import { spawnPedestrians, updatePedestrians, scarePeds } from './pedestrians.js
 import { createPoliceState, updatePolice, clearPolice } from './police.js';
 import { createCombatState, tryPunch, tryShoot, switchWeapon, updateCombat } from './combat.js';
 import { createMissionsState, startMission, updateMissions, restartMission, spawnPickups, updatePickups, spawnShells, updateShells, spawnJumps, spawnFareCustomer, updateFare } from './missions.js';
+import { createStats, updateStats } from './stats.js';
 import { createHud, updateHud } from './hud.js';
 import { applyShotMode, warmUpWorld } from './shots.js';
 
@@ -109,6 +110,7 @@ G.city = buildCity(scene, rng);
 G.player = createPlayerState(scene);
 G.combat = createCombatState(scene);
 G.missions = createMissionsState(scene);
+G.stats = createStats();
 G.hud = createHud();
 spawnVehicles(G);
 spawnPedestrians(G, 26);
@@ -158,17 +160,32 @@ function refreshContinueButton() {
 }
 continueBtn.addEventListener('click', () => startGame(true));
 refreshContinueButton();
-document.getElementById('resume-btn').addEventListener('click', () => {
+// Pause stops the loop (frame() skips updates while paused) and
+// fills the career screen with real tracked stats.
+function openPause() {
+  G.mode = 'paused';
+  G.hud.showPause(G);
+  pauseScreen.style.display = 'flex';
+  G.hud.root.style.display = 'none';
+  if (document.pointerLockElement) document.exitPointerLock();
+  G.save();
+}
+function closePause() {
   G.mode = 'play';
   pauseScreen.style.display = 'none';
   G.hud.root.style.display = 'block';
-});
+}
+document.getElementById('resume-btn').addEventListener('click', closePause);
 document.getElementById('restart-mission-btn').addEventListener('click', () => {
   restartMission(G);
-  G.mode = 'play';
-  pauseScreen.style.display = 'none';
-  G.hud.root.style.display = 'block';
+  closePause();
 });
+for (let i = 1; i <= 3; i++) {
+  document.getElementById(`slot-${i}`).addEventListener('click', () => {
+    saveGame(G, i);
+    G.hud.showPause(G);
+  });
+}
 document.getElementById('quit-to-start-btn').addEventListener('click', () => {
   G.save();
   refreshContinueButton();
@@ -212,14 +229,8 @@ function frame() {
     G.time += dt;
     G.gameHour = (G.gameHour + dt / 240) % 24;
     const input = G.input;
-    // Pause.
-    if (input.wasPressed('Escape')) {
-      G.mode = 'paused';
-      pauseScreen.style.display = 'flex';
-      G.hud.root.style.display = 'none';
-      if (document.pointerLockElement) document.exitPointerLock();
-      G.save();
-    }
+    // Pause (Esc or P).
+    if (input.wasPressed('Escape') || input.wasPressed('KeyP')) openPause();
     // Mute.
     if (input.wasPressed('KeyM')) {
       G.audio.setMuted(!G.audio.muted);
@@ -263,6 +274,7 @@ function frame() {
     updatePickups(G, dt);
     updateShells(G, dt);
     updateFare(G, dt);
+    updateStats(G, dt);
 
     // Slow health regen when nobody is after you.
     if (G.wanted === 0 && G.health < 100) G.health = Math.min(100, G.health + dt * 1.5);
@@ -282,11 +294,7 @@ function frame() {
     saveTimer += dt;
     if (saveTimer > 20) { saveTimer = 0; G.save(); }
   } else if (G.mode === 'paused') {
-    if (G.input.wasPressed('Escape')) {
-      G.mode = 'play';
-      pauseScreen.style.display = 'none';
-      G.hud.root.style.display = 'block';
-    }
+    if (G.input.wasPressed('Escape') || G.input.wasPressed('KeyP')) closePause();
   } else if (G.mode === 'start') {
     G.time += dt;
     const t = G.time * 0.05;

@@ -399,6 +399,7 @@ export function updatePolice(G, dt) {
     G.police.decayTimer = first - period;
     if (G.wanted > 0) {
       G.wanted--;
+      if (G.wanted === 0 && G.stats) G.stats.cops++; // escaped, not busted
       G.toast(`Heat dying down — wanted level ${G.wanted}`);
     }
   }

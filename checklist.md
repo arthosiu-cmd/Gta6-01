@@ -1839,3 +1839,51 @@ BIG LEAP per Arie ("nothing is impossible"): two NEW system dimensions, not poli
   1280×800 JPEG ≤ 256 KiB.
 - NOT done by this builder (parent's job): push to GitHub, submit
   round 5 (needs Arie's explicit approval).
+
+## Cycle 22 checklist (career / stats pause screen — research Idea 12)
+- [x] Real stats tracking (new game/src/stats.js): cars stolen,
+  cops escaped, distance, longest jump, money earned, REP, time
+  played, shells/jumps, per-mission ratings (best time + medal).
+  Every number tracked live by the game, never staged.
+- [x] Pause menu (Esc or P, loop stops): completion % (honest
+  jobs+shells+jumps formula), career stats grid, 9 job ratings,
+  3 save slots, FULL MAP (districts + roads + player + job marker
+  + places + shells + ramps); city stays visible dimmed behind.
+- [x] 4th screenshot = the pause screen (4-pause.jpg, 122,768 B);
+  shots 1–3 byte-identical. Verified by LOOKING at the frame.
+- [x] Stats + ratings persist in localStorage (save.js, 3 slots).
+- [x] Harness 389/389 PASS (371 + 18 new §48); determinism
+  byte-identical; dossier text 160,847 B, margin 2,993 B, no cut
+  (compaction: shared map core + stripped fragment comments).
+
+## Verification log (Cycle 22 — career / stats pause screen, 2026-11-23)
+- Harness ~/workspace/makefun/dev-gta6-cycle5/harness.mjs:
+  **389/389 PASS** (out-c22-harness-final.log): 371 Cycle 21 + 18
+  new §48 (stats defaults, medal thresholds, 100 m distance,
+  earned-only-on-rise, completion 26%/0%/100%, real M1 GOLD 0:12
+  rating + $100 + 60 REP, best-time-kept, steal-once, spawned car
+  not a steal, longest jump >0.6 s, escape count on decay to 0,
+  slot independence, stats save/load, old saves zero, fmtTime).
+- Live CDP c22-pause-live.mjs: **ALL PASS**
+  (out-c22-pause-live2.log): chase starts in play; Esc pauses
+  (mode paused, screen visible); loop frozen (time 2.3 = 2.3 after
+  1 s); pause shows real stats; Esc resumes; P pauses; SLOT 2
+  saves live; Resume returns to play. (First run flaked once on
+  Resume; probe + rerun green — headless timing, not a game bug.)
+- Render ~/workspace/makefun/dev-gta6-cycle5/render.mjs pause
+  (out-c22-render-pause3.log, exit 0): pause shot LOOKED at —
+  PAUSED, 19% COMPLETE, CARS STOLEN 1, DISTANCE 0.1 km, SHELLS
+  3/12, JOBS DONE 3/9, MONEY EARNED $825, REP 255, TIME PLAYED
+  1:06, JOB 1–3 GOLD 0:12/0:24/0:12, SLOT 1 $1,075 · JOB 3/9,
+  SLOT 2/3 EMPTY, full map with all 6 district labels + player
+  arrow + job diamond + places/shells/ramps, dusk city dimmed
+  behind. Only console problem: favicon.ico 404 (benign,
+  pre-existing). Staged numbers reproduced exactly across renders.
+- main.ts re-verified with the final screenshots: two runs
+  byte-identical (diff -r clean); dossier 965,411 B, text 160,847
+  chars (< 163,840 cap — margin 2,993 B, no cut); game/ 17 files.
+  Screenshots in /output: 4 files (1-chase 170,364 B, 2-foot
+  152,579 B, 3-drive 153,803 B, 4-pause 122,768 B), all 1280×800
+  JPEG ≤ 256 KiB.
+- NOT done by this builder (parent's job): push to GitHub, submit
+  round 6 (needs Arie's explicit approval).

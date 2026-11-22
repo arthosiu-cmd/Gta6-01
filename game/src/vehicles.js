@@ -233,6 +233,7 @@ export function updatePlayerCar(G, dt) {
       const air = car.airT;
       car.vy = 0; car.airT = 0;
       car.mesh.rotation.x = 0;
+      if (G.stats && air > 0) G.stats.longest = Math.max(G.stats.longest, air);
       const j = car.jumpSpot;
       car.jumpSpot = null;
       if (j && !j.done && air > 0.6) {
@@ -267,6 +268,8 @@ export function nearestCar(G, maxDist) {
 
 export function enterCar(G, car) {
   const wasTraffic = car.kind === 'traffic';
+  // A first take of a car that was not yours counts as a steal.
+  if (G.stats && !car.counted) { car.counted = true; G.stats.cars++; }
   car.kind = 'player';
   car.speed = 0;
   car.condition = 100;

@@ -3,6 +3,7 @@ import { PLACES } from './city.js';
 import { dist2D } from './utils.js';
 import { clearPolice } from './police.js';
 import { spawnRivalCar } from './vehicles.js';
+import { noteMissionStart, noteMissionComplete } from './stats.js';
 
 export const MISSIONS = [
   {
@@ -56,7 +57,6 @@ export const MISSIONS = [
     id: 7, title: 'Clean Getaway', reward: 1000,
     brief: "Lena: 'Thorne's courier route is mapped — but the car you stole it in is hot, and every cop in Solmar is looking for it. Stay clean for 25 seconds — no new trouble, or the clock starts over — then slip back to the safehouse.'",
     steps: [
-      // one is a mechanic of its own.
       { text: 'Lay low — stay clean until the heat dies down', layLow: 25, onStart: (G) => { G.addWanted(3, 'The stolen car is hot — the whole PD is after you'); } },
       { text: 'Reach the safehouse', pos: PLACES.safehouse, radius: 8 },
     ],
@@ -65,8 +65,6 @@ export const MISSIONS = [
     id: 8, title: 'The Enforcer', reward: 1200,
     brief: "Lena: 'Thorne's enforcer runs his street crews — and he's the one who torched your old garage. Run him down on foot and put him on the ground before he slips away. Fists or pistol, your call — the cops won't lift a finger for him, it's between you and him. But if he gets away, the trail goes cold.'",
     steps: [
-      // Hunt: a foot takedown, not a go-to. The target flees the
-      // no wanted (see combat.js / hurtPed) — otherwise the first
       { text: "Take down Thorne's enforcer", hunt: true, onStart: (G) => { G.wanted = 0; clearPolice(G); designateTarget(G); } },
     ],
   },
@@ -75,17 +73,12 @@ export const MISSIONS = [
     brief: "Lena: 'Thorne's crew races for pink slips down the boardwalk every night — winner takes the cars, loser walks home. Beat them at their own game, Rico: steal a car, then hit all 5 checkpoints before the clock runs out and the prize is ours.'",
     steps: [
       { text: 'Steal a car (press E near one)', pos: null, radius: 0, needCar: true },
-      // clock. Step 0 is the
-      // not tick while Rico is on foot hunting for a car.
       { text: 'Race the boardwalk — beat the rival to the finish', race: { points: [{ x: -88, z: 256 }, { x: 8, z: 256 }, { x: 104, z: 256 }, { x: 200, z: 256 }, { x: 280, z: 256 }], radius: 7, time: 30 } },
     ],
   },
 ];
 
-// REP / Respect rank ladder — original names, earned from jobs and
-// fares. A mission pays 50 + reward/10 REP; the M7 lay-low escape
-// pays a +25 bonus on top. rankForRep is the single source of truth
-// for the HUD bar and the save file.
+// REP ladder: a mission pays 50 + reward/10 REP; M7 escape +25.
 export const REP_RANKS = [
   { xp: 0, name: 'ROOKIE' },
   { xp: 300, name: 'GETAWAY DRIVER' },
@@ -115,8 +108,6 @@ export function awardRep(G, xp) {
 }
 
 export function createMissionsState(scene) {
-  // range. Long-range wayfinding still has the minimap blip +
-  // that reads as a game).
   const beacon = new THREE.Group();
   const column = new THREE.Mesh(
     new THREE.CylinderGeometry(0.6, 0.6, 5, 12, 1, true),
@@ -142,7 +133,6 @@ export function createMissionsState(scene) {
   beacon.add(marker);
   beacon.visible = false;
   scene.add(beacon);
-  // on complete / fail / restart.
   const raceMarkers = new THREE.Group();
   const ringGeo = new THREE.RingGeometry(4.5, 5.5, 32);
   const ringMat = new THREE.MeshBasicMaterial({ color: 0xffd23e, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
@@ -167,7 +157,6 @@ export function createMissionsState(scene) {
     tail: null,
     layLow: null,
     hunt: null,
-    // Cash pickups and the fare job live here too.
     pickups: [],
     shells: [], shellsGot: 0, jumps: [], jumpsGot: 0,
     fare: { state: 'waiting', ped: null, dest: null, timer: 0 },
@@ -184,7 +173,6 @@ export function currentStep(G) {
   return m ? m.steps[G.missions.step] : null;
 }
 
-// Mission header data for the HUD: JOB x/9, STAGE pips, NEXT step.
 export function missionHeader(G) {
   const m = currentMission(G);
   const step = currentStep(G);
@@ -197,9 +185,7 @@ export function missionHeader(G) {
   };
 }
 
-// Dialogue portrait speaker: Lena Cruz runs the garage and hands out
-// every job, so every mission brief is hers. Abstract disc + initials
-// (never a drawn face).
+// Brief speaker: Lena Cruz, garage owner (abstract disc + initials).
 export const SPEAKER_LENA = { initials: 'LC', name: 'Lena Cruz', role: 'Garage Owner', color: '#2e7fc8' };
 
 function stepTime(step) {
@@ -237,6 +223,7 @@ export function startMission(G, index) {
   G.missions.race = null;
   clearRival(G);
   hideRaceMarkers(G);
+  noteMissionStart(G);
   const step = m.steps[0];
   if (step.onStart) step.onStart(G);
   if (stepTime(step)) G.missions.timer = stepTime(step);
@@ -261,6 +248,7 @@ export function startMissionStep(G, index, stepIdx) {
   G.missions.race = null;
   clearRival(G);
   hideRaceMarkers(G);
+  noteMissionStart(G);
   if (step.onStart) step.onStart(G);
   if (stepTime(step)) G.missions.timer = stepTime(step);
   if (step.race) { showRaceMarkers(G, step.race.points); spawnRival(G); }
@@ -269,7 +257,6 @@ export function startMissionStep(G, index, stepIdx) {
   updateBeacon(G);
 }
 
-// mesh.position directly.
 export function designateCourier(G) {
   const car = G.cars.find((c) => c.kind === 'traffic');
   if (!car) return null;
@@ -280,12 +267,10 @@ export function designateCourier(G) {
   car.cruise = 9;
   car.speed = 9;
   car.noTurn = true;
-  // back in the zone, so the next entry warns again.
   G.missions.tail = { car, hold: 0, spot: 0, lose: 0, warnClose: false, warnFar: false };
   return car;
 }
 
-// 8–12 / 45–55 m on the edge).
 export function tailZone(d) {
   if (d >= 12 && d <= 45) return 'IN ZONE';
   if (d < 8) return 'TOO CLOSE';
@@ -299,7 +284,6 @@ export function tailTarget(G) {
   return { x: tail.car.mesh.position.x, z: tail.car.mesh.position.z };
 }
 
-// never picked (only 'walk').
 export function designateTarget(G) {
   const p = G.player.pos;
   const fx = Math.sin(G.player.angle), fz = Math.cos(G.player.angle);
@@ -315,7 +299,6 @@ export function designateTarget(G) {
     }
   }
   if (!best) {
-    // No one ahead: nearest walking ped in range.
     for (const ped of G.peds) {
       if (ped.state !== 'walk') continue;
       const d = dist2D(p.x, p.z, ped.pos.x, ped.pos.z);
@@ -414,8 +397,8 @@ function completeStep(G) {
     updateBeacon(G);
     return;
   }
-  // Mission complete.
   G.money += m.reward;
+  noteMissionComplete(G, m);
   awardRep(G, 50 + Math.round(m.reward / 10) + (m.id === 7 ? 25 : 0));
   G.audio.missionJingle();
   G.toast(`${m.title} complete! +$${m.reward}`);
@@ -433,7 +416,6 @@ function completeStep(G) {
 
 export function updateMissions(G, dt) {
   const ms = G.missions;
-  // Beacon pulse.
   if (ms.beacon.visible) {
     const ring = ms.beacon.getObjectByName('ring');
     const marker = ms.beacon.getObjectByName('marker');
@@ -465,7 +447,6 @@ export function updateMissions(G, dt) {
     if (courier.along > 230 || courier.along < -230) courier.dir *= -1;
     const d = dist2D(G.player.pos.x, G.player.pos.z, courier.mesh.position.x, courier.mesh.position.z);
     if (d < 8) {
-      // lands, and it must not spam every frame.
       if (!ms.tail.warnClose) {
         G.toast("Too close — he'll spot you! Back off!");
         ms.tail.warnClose = true;
@@ -488,7 +469,6 @@ export function updateMissions(G, dt) {
         return;
       }
     } else if (d >= 12 && d <= 45) {
-      // re-arm so the next entry into a danger zone warns again.
       ms.tail.hold += dt;
       ms.tail.spot = 0;
       ms.tail.lose = 0;
@@ -499,18 +479,14 @@ export function updateMissions(G, dt) {
         return;
       }
     } else {
-      // Edge of the zone (8–12 or 45–55): hold pauses, and the
-      // spot/lose clocks bleed off instead of snapping to zero.
       ms.tail.spot = Math.max(0, ms.tail.spot - dt);
       ms.tail.lose = Math.max(0, ms.tail.lose - dt);
     }
-    // The beacon rides the courier while the tail is live.
     updateBeacon(G);
     return;
   }
   if (step.layLow) {
-    // FALLING (the passive decay in police.js) never resets it.
-    // rise this frame is visible here the same frame.
+    // Only a wanted RISE resets the clock; falling never does.
     if (!ms.layLow) {
       ms.layLow = { remain: step.layLow, lastWanted: G.wanted };
       return;
@@ -536,7 +512,6 @@ export function updateMissions(G, dt) {
     }
     const target = ms.hunt.ped;
     if (target.state === 'down') {
-      // Put on the ground — the hunt is done.
       completeStep(G);
       return;
     }
@@ -544,7 +519,6 @@ export function updateMissions(G, dt) {
       failMission(G, 'The enforcer slipped away!');
       return;
     }
-    // could do it) gets scared back into a flee.
     if (target.state === 'walk') {
       target.state = 'flee';
       target.fleeTimer = 4;
@@ -555,7 +529,6 @@ export function updateMissions(G, dt) {
     }
     const d = dist2D(G.player.pos.x, G.player.pos.z, target.mesh.position.x, target.mesh.position.z);
     if (d > 55) {
-      // the tail's lose clock.
       if (!ms.hunt.warned) {
         G.toast("He's getting away — run him down!");
         ms.hunt.warned = true;
@@ -573,7 +546,6 @@ export function updateMissions(G, dt) {
     return;
   }
   if (step.race) {
-    // hunt: a race step with no race state must not crash.
     if (!ms.race) {
       ms.race = { idx: 0 };
       showRaceMarkers(G, step.race.points);
@@ -682,12 +654,7 @@ export function updatePickups(G, dt) {
   }
 }
 
-// Sunset Shells: 12 ORIGINAL fixed collectibles across coastal
-// Solmar (beach, park, port, downtown) — our own theme, not a
-// leader's. A shell pays real +$25 cash +10 REP, once each (no
-// respawn, unlike cash pickups). Stunt jumps: 5 marked ramp spots;
-// crossing one in a car at 15+ m/s launches the car (vehicles.js
-// ballistic air) and landing after >0.6 s airborne pays +$50.
+// Sunset Shells (12) pay +$25 +10 REP once each; jumps (5) pay +$50.
 export const SHELL_SPOTS = [
   [-64, 320], [64, 320], [-96, 256], [-128, 224], [-192, 192],
   [192, -224], [256, -192], [0, 64], [64, 0], [-64, -64],
@@ -771,7 +738,6 @@ export function updateFare(G, dt) {
   const fare = G.missions.fare;
   if (fare.state === 'offered' && fare.ped) {
     const ped = fare.ped;
-    // marker ("drive them to the green marker!").
     if (!G.missions.fareMarker) {
       const marker = new THREE.Mesh(
         new THREE.ConeGeometry(0.4, 1.0, 4),

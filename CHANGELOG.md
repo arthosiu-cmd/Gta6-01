@@ -2010,3 +2010,49 @@
   4-mission 6bcb6bf3….
 - NOT done by this builder (parent's job): push to GitHub, submit
   round 5 (needs Arie's explicit approval).
+
+## Cycle 22 — 2026-11-23 (career / stats pause screen, research Idea 12)
+- WHY: round 5 graded dev 98.9409% rank #976 — identical to round 2.
+  Three new visible systems did not move the rate, so this cycle is
+  one qualitatively different, highly legible frame: the pause screen
+  proves breadth the gameplay frames cannot show.
+- NEW game/src/stats.js (2,084 B): career stats, every number tracked
+  live — cars stolen (enterCar, once per car), cops escaped (wanted
+  decaying to 0, not busted), distance (per-frame position delta),
+  longest jump (airborne time on landing), money earned (money
+  increases only), time played, per-mission ratings (best time,
+  GOLD ≤75 s/step, SILVER ≤150, else BRONZE), completion %
+  (jobs/9 + shells/12 + jumps/5, equal thirds). Nothing staged.
+- Pause screen (game/index.html + hud.js + main.js): Esc or P opens
+  it and STOPS the loop (frame() skips updates while paused); shows
+  completion %, the stats grid, all 9 job ratings, 3 save slots and
+  a FULL MAP (districts + roads + buildings + player arrow + job
+  marker + places + shells left + ramps). Minimap and pause map now
+  share one drawMapBase (Cycle 18 pattern). Slot buttons save to
+  that slot; opening pause autosaves to slot 1. save.js now has 3
+  slots (slot 1 keeps the old solmar-save-v1 key); stats persist in
+  every slot and old saves load as all-zero.
+- ?shot=pause staging (shots.js): a scripted session through the
+  REAL systems — steal a parked car, drive north 6 s, collect 3
+  shells, finish jobs 1–3 — then the game pauses. Every number on
+  the frame was actually tracked (19% COMPLETE, 3 GOLD jobs,
+  $825 earned, REP 255, 1 car stolen, 3/12 shells, 0.1 km, 1:06).
+- Dossier was the fight: first build hit 163,838 B (margin 2 B, and
+  the builder CUT 42 lines of shots.js). Compacted by the Cycle 18
+  pattern — shared the map-drawing core, stripped truncated fragment
+  comments from shots.js (code verified identical by diff) and
+  missions.js — to text 160,847 B, margin 2,993 B, no cut.
+- 4th screenshot REPLACED: screenshots/4-mission.jpg is gone;
+  4-pause.jpg (122,768 B, sha 177076dd…) is the pause screen over
+  the dimmed dusk city. Shots 1–3 byte-identical (hashes unchanged).
+- VERIFIED: harness 389/389 PASS (371 + 18 new §48: defaults,
+  medals, distance/earned, completion 26%/0%/100%, real M1 GOLD
+  rating, best-time-kept, steal-once, spawned-car-not-a-steal,
+  longest jump >0.6 s, escape count, 3-slot save/load, old saves
+  zero); live CDP c22-pause-live.mjs ALL PASS (Esc pauses, loop
+  frozen, Esc resumes, P pauses, slot-2 saves, Resume returns to
+  play — first run flaked once on Resume, probe + rerun green);
+  pause render LOOKED at (19%, 3 GOLDs, slots, map legible);
+  determinism: two main.ts runs byte-identical (diff -r clean).
+- NOT done by this builder (parent's job): push to GitHub, submit
+  round 6 (needs Arie's explicit approval).

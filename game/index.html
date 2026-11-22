@@ -57,6 +57,16 @@
   .btn:hover { background: #ffe27a; }
   .btn.ghost { background: transparent; color: #fff; border: 2px solid #fff; }
   #pause-screen, #end-screen { display: none; }
+  #pause-screen { background: linear-gradient(180deg, rgba(6,20,34,0.45), rgba(6,20,34,0.82)); }
+  #pause-wrap { display: flex; gap: 18px; text-align: left; background: rgba(8,18,28,0.88); border: 1px solid rgba(255,255,255,0.25); border-radius: 12px; padding: 16px 20px; }
+  #pause-screen h1 { font-size: 34px; letter-spacing: 6px; }
+  #pause-complete { font-size: 22px; font-weight: 700; color: #ffd23e; margin: 2px 0 8px; }
+  #pause-stats { font-size: 15px; font-weight: 600; line-height: 1.75; white-space: pre-line; }
+  #pause-ratings { font-size: 14px; line-height: 1.6; color: #cfe8ff; white-space: pre-line; margin-top: 8px; }
+  #pause-slots { margin: 10px 0 4px; }
+  .btn.slot { font-size: 12px; padding: 8px 12px; margin: 2px; }
+  #pause-map { border-radius: 8px; border: 2px solid rgba(255,255,255,0.5); background: #14281e; }
+  #pause-map-cap { font-size: 12px; color: #cfe8ff; margin-top: 6px; text-align: center; max-width: 340px; }
   #end-title { font-size: 56px; letter-spacing: 8px; color: #ff3b30; text-shadow: 0 4px 0 #5e0d0d, 0 8px 24px rgba(0,0,0,0.6); }
   #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 </style>
@@ -113,7 +123,7 @@
   <p>Explore the city on foot or by car. Steal cars, lose the cops, run fares, grab cash — and finish all five jobs to pay the debt and take the boat out of Solmar.</p>
   <div class="controls">
     WASD move / drive &nbsp;·&nbsp; Shift sprint &nbsp;·&nbsp; E enter / exit car &nbsp;·&nbsp; F punch<br>
-    Click / Space shoot &nbsp;·&nbsp; 1–4 switch weapon &nbsp;·&nbsp; Q take a fare &nbsp;·&nbsp; R restart mission &nbsp;·&nbsp; M mute &nbsp;·&nbsp; N radio &nbsp;·&nbsp; Esc pause<br>
+    Click / Space shoot &nbsp;·&nbsp; 1–4 switch weapon &nbsp;·&nbsp; Q take a fare &nbsp;·&nbsp; R restart mission &nbsp;·&nbsp; M mute &nbsp;·&nbsp; N radio &nbsp;·&nbsp; Esc / P pause<br>
     Mouse: click the game to look around. Progress saves automatically.
   </div>
   <div>
@@ -123,12 +133,28 @@
 </div>
 
 <div id="pause-screen" class="screen">
-  <h1 style="font-size:44px">PAUSED</h1>
-  <p>Solmar waits for no one — except right now.</p>
-  <div>
-    <button class="btn" id="resume-btn">Resume</button>
-    <button class="btn ghost" id="restart-mission-btn">Restart mission</button>
-    <button class="btn ghost" id="quit-to-start-btn">Save &amp; quit to menu</button>
+  <div id="pause-wrap">
+    <div id="pause-left">
+      <h1>PAUSED</h1>
+      <div id="pause-complete">0% COMPLETE</div>
+      <div id="pause-stats"></div>
+      <div id="pause-ratings"></div>
+      <div id="pause-slots">
+        <button class="btn slot" id="slot-1">SLOT 1 — EMPTY</button>
+        <button class="btn slot" id="slot-2">SLOT 2 — EMPTY</button>
+        <button class="btn slot" id="slot-3">SLOT 3 — EMPTY</button>
+      </div>
+      <div>
+        <button class="btn" id="resume-btn">Resume</button>
+        <button class="btn ghost" id="restart-mission-btn">Restart mission</button>
+        <button class="btn ghost" id="quit-to-start-btn">Save &amp; quit to menu</button>
+      </div>
+      <p id="pause-hint">Esc / P resume · progress saves to Slot 1 automatically · tap a slot to save there</p>
+    </div>
+    <div id="pause-right">
+      <canvas id="pause-map" width="340" height="340"></canvas>
+      <div id="pause-map-cap">SOLMAR — full map · ▲ you · ◆ job · ● places · pink shells left · orange ramps</div>
+    </div>
   </div>
 </div>
 

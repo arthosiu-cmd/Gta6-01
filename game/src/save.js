@@ -1,7 +1,10 @@
-// save.js — localStorage save/load for Solmar.
-const SAVE_KEY = 'solmar-save-v1';
+// save.js — localStorage save/load, 3 slots (slot 1 keeps the old key).
+import { statsToJSON, statsFromJSON } from './stats.js';
 
-export function saveGame(state) {
+const SAVE_KEYS = ['solmar-save-v1', 'solmar-save-v2', 'solmar-save-v3'];
+const slotKey = (slot) => SAVE_KEYS[Math.min(Math.max(slot || 1, 1), 3) - 1];
+
+export function saveGame(state, slot = 1) {
   try {
     const data = {
       version: 1,
@@ -14,17 +17,18 @@ export function saveGame(state) {
       pz: +state.player.pos.z.toFixed(1),
       angle: +state.player.angle.toFixed(2),
       storyDone: state.missions.storyDone,
+      stats: state.stats ? statsToJSON(state.stats) : null,
     };
-    window.localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    window.localStorage.setItem(slotKey(slot), JSON.stringify(data));
     return true;
   } catch (err) {
     return false;
   }
 }
 
-export function loadSave() {
+export function loadSave(slot = 1) {
   try {
-    const raw = window.localStorage.getItem(SAVE_KEY);
+    const raw = window.localStorage.getItem(slotKey(slot));
     if (!raw) return null;
     const data = JSON.parse(raw);
     if (!data || data.version !== 1) return null;
@@ -45,4 +49,10 @@ export function applySave(state, data) {
   state.player.pos.z = data.pz;
   state.player.angle = data.angle;
   state.player.pos.y = 0;
+  if (state.stats) {
+    statsFromJSON(state.stats, data.stats);
+    state.stats.lastX = data.px;
+    state.stats.lastZ = data.pz;
+    state.stats.lastMoney = data.money;
+  }
 }

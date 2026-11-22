@@ -1,8 +1,10 @@
 // police blips, traffic dots, fare marker).
-import { currentMission, currentStep, fareDestination, tailTarget, tailZone, huntTarget, raceTarget, rankForRep, missionHeader } from './missions.js';
-import { districtAt } from './city.js';
+import { currentMission, currentStep, fareDestination, tailTarget, tailZone, huntTarget, raceTarget, rankForRep, missionHeader, MISSIONS } from './missions.js';
+import { districtAt, PLACES } from './city.js';
 import { WEAPONS, magText } from './combat.js';
 import { dist2D } from './utils.js';
+import { completionPct, fmtTime } from './stats.js';
+import { loadSave } from './save.js';
 
 export function createHud() {
   const el = (id) => document.getElementById(id);
@@ -38,6 +40,10 @@ export function createHud() {
     los: el('los'),
     side: el('side'),
     weapons: el('weapons'),
+    pauseComplete: el('pause-complete'),
+    pauseStats: el('pause-stats'),
+    pauseRatings: el('pause-ratings'),
+    pauseMap: el('pause-map'),
     toastTimer: 0,
     briefTimer: 0,
   };
@@ -63,36 +69,55 @@ export function createHud() {
     hud.brief.style.display = 'block';
     hud.briefTimer = 7;
   };
+  // Pause / career screen: real tracked numbers only, plus the map.
+  hud.showPause = (G) => {
+    const S = G.stats;
+    if (!S) return;
+    const done = Object.keys(S.ratings).length;
+    hud.pauseComplete.textContent = `${completionPct(S, G.missions.shellsGot, G.missions.jumpsGot, MISSIONS.length)}% COMPLETE`;
+    hud.pauseStats.textContent = [
+      `CARS STOLEN ${S.cars} · COPS ESCAPED ${S.cops}`,
+      `DISTANCE ${(S.dist / 1000).toFixed(1)} km · LONGEST JUMP ${S.longest.toFixed(1)}s`,
+      `SHELLS ${G.missions.shellsGot}/12 · JUMPS ${G.missions.jumpsGot}/5`,
+      `JOBS DONE ${done}/9 · MONEY EARNED $${Math.round(S.earned).toLocaleString('en-US')}`,
+      `REP ${Math.round(G.rep || 0)} · TIME PLAYED ${fmtTime(Math.round(S.time))}`,
+    ].join('\n');
+    hud.pauseRatings.textContent = MISSIONS.map((m) => {
+      const r = S.ratings[m.id];
+      return r ? `JOB ${m.id} ${m.title} — ${r.medal} ${fmtTime(r.time)}` : `JOB ${m.id} ${m.title} — —`;
+    }).join('\n');
+    for (let i = 1; i <= 3; i++) {
+      const b = document.getElementById(`slot-${i}`);
+      const d = loadSave(i);
+      b.textContent = d ? `SLOT ${i} — $${Math.round(d.money).toLocaleString('en-US')} · JOB ${d.missionIndex + 1}/9` : `SLOT ${i} — EMPTY`;
+    }
+    drawPauseMap(G);
+  };
   return hud;
 }
 
-function drawMinimap(G) {
-  const ctx = G.hud.minimapCtx;
-  const S = 190;
+// Shared map base for the minimap and the pause full map: land,
+// ocean, park, buildings, roads, job target. Returns toMap.
+function drawMapBase(G, ctx, S) {
   const W = 800;
   const toMap = (x, z) => [((x + W / 2) / W) * S, ((z + W / 2) / W) * S];
   ctx.clearRect(0, 0, S, S);
-  ctx.fillStyle = 'rgba(20, 40, 30, 0.92)';
+  ctx.fillStyle = '#14281e';
   ctx.fillRect(0, 0, S, S);
-  // Ocean strip at the bottom (south).
   const [, oceanY] = toMap(0, 300);
   ctx.fillStyle = '#2a7fae';
   ctx.fillRect(0, oceanY, S, S - oceanY);
-  // Sand.
   ctx.fillStyle = '#e8d49a';
   ctx.fillRect(0, oceanY - 8, S, 8);
-  // Park.
   const [px, py] = toMap(-192, 160);
   ctx.fillStyle = '#3f7d33';
   ctx.fillRect(px, py, 14, 14);
-  // Buildings.
   ctx.fillStyle = '#6a7076';
   for (const b of G.city.buildings) {
     const [x1, y1] = toMap(b.minX, b.minZ);
     const [x2, y2] = toMap(b.maxX, b.maxZ);
     ctx.fillRect(x1, y1, Math.max(1, x2 - x1), Math.max(1, y2 - y1));
   }
-  // Roads.
   ctx.strokeStyle = '#c8ccd0';
   ctx.lineWidth = 2;
   for (const c of G.city.roadCoords) {
@@ -101,6 +126,73 @@ function drawMinimap(G) {
     const [, ay] = toMap(0, c);
     ctx.beginPath(); ctx.moveTo(0, ay); ctx.lineTo(S, ay); ctx.stroke();
   }
+  const step = currentStep(G);
+  const target = fareDestination(G) || tailTarget(G) || huntTarget(G) || raceTarget(G) || (G.missions.active && step && step.pos ? step.pos : null);
+  if (target) {
+    const [x, y] = toMap(target.x, target.z);
+    const r = 4 + Math.sin(G.time * 4) * 1.5;
+    ctx.fillStyle = '#ffd23e';
+    ctx.beginPath();
+    ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y);
+    ctx.closePath(); ctx.fill();
+  }
+  return toMap;
+}
+
+function drawArrow(ctx, x, y, angle, s) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#111111';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, -s); ctx.lineTo(s * 0.75, s * 0.85); ctx.lineTo(-s * 0.75, s * 0.85);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+// Full map for the pause screen: districts, places, shells, ramps.
+function drawPauseMap(G) {
+  const cv = G.hud.pauseMap;
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const S = 340;
+  const toMap = drawMapBase(G, ctx, S);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.shadowColor = '#000';
+  ctx.shadowBlur = 3;
+  for (const [x, z] of [[0, 300], [220, -220], [-220, 0], [0, -220], [110, 110], [-110, 110]]) {
+    const [lx, ly] = toMap(x, z);
+    ctx.fillText(districtAt(x, z), lx - 28, ly);
+  }
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#ffd23e';
+  for (const p of Object.values(PLACES)) {
+    const [x, y] = toMap(p.x, p.z);
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.fillStyle = '#ff7fb0';
+  for (const s of G.missions.shells) {
+    if (s.taken) continue;
+    const [x, y] = toMap(s.mesh.position.x, s.mesh.position.z);
+    ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.fillStyle = '#ff8c2e';
+  for (const j of G.missions.jumps) {
+    if (j.done) continue;
+    const [x, y] = toMap(j.x, j.z);
+    ctx.fillRect(x - 2, y - 2, 4, 4);
+  }
+  const [qx, qy] = toMap(G.player.pos.x, G.player.pos.z);
+  drawArrow(ctx, qx, qy, Math.atan2(Math.sin(G.player.angle), Math.cos(G.player.angle)) + Math.PI, 8);
+}
+
+function drawMinimap(G) {
+  const ctx = G.hud.minimapCtx;
+  const S = 190;
+  const toMap = drawMapBase(G, ctx, S);
   // Traffic dots.
   ctx.fillStyle = '#ffd23e';
   for (const car of G.cars) {
@@ -125,22 +217,6 @@ function drawMinimap(G) {
     ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.stroke();
   }
-  // and so does the enforcer on the hunt.
-  const step = currentStep(G);
-  const fareDest = fareDestination(G);
-  const tailDest = tailTarget(G);
-  const huntDest = huntTarget(G);
-  const raceDest = raceTarget(G);
-  const target = fareDest || tailDest || huntDest || raceDest || (G.missions.active && step && step.pos ? step.pos : null);
-  if (target) {
-    const [x, y] = toMap(target.x, target.z);
-    const pulse = 4 + Math.sin(G.time * 4) * 1.5;
-    ctx.fillStyle = '#ffd23e';
-    ctx.beginPath();
-    ctx.moveTo(x, y - pulse); ctx.lineTo(x + pulse, y);
-    ctx.lineTo(x, y + pulse); ctx.lineTo(x - pulse, y);
-    ctx.closePath(); ctx.fill();
-  }
   // Player arrow (white, points along facing).
   const [px2, py2] = toMap(G.player.pos.x, G.player.pos.z);
   // Search zone (wanted >= 3): red circle on the minimap, centred
@@ -149,18 +225,9 @@ function drawMinimap(G) {
     ctx.fillStyle = 'rgba(255,42,42,0.10)';
     ctx.strokeStyle = '#ff2a2a';
     ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(px2, py2, (60 / W) * S, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(px2, py2, (60 / 800) * S, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   }
-  ctx.save();
-  ctx.translate(px2, py2);
-  ctx.rotate(Math.atan2(Math.sin(G.player.angle), Math.cos(G.player.angle)) + Math.PI);
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#111111';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(0, -6); ctx.lineTo(4.5, 5); ctx.lineTo(-4.5, 5);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.restore();
+  drawArrow(ctx, px2, py2, Math.atan2(Math.sin(G.player.angle), Math.cos(G.player.angle)) + Math.PI, 6);
   // North tick.
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 10px sans-serif';
@@ -321,8 +388,8 @@ export function updateHud(G, dt) {
   const station = G.audio && G.audio.currentStation ? G.audio.currentStation() : null;
   if (station) hud.radio.textContent = `SOLMAR FM ${station.freq} · ${station.name} — '${station.track}'`;
   hud.hint.textContent = G.player.onFoot
-    ? 'WASD move · Shift sprint · E enter car · F punch · Click/Space shoot · 1–4 weapons · Q fare · R mission · M mute · N radio · Esc pause'
-    : 'W/S drive · A/D steer · E exit car · Click/Space shoot · 1–4 weapons · Q fare · R mission · M mute · N radio · Esc pause';
+    ? 'WASD move · Shift sprint · E enter car · F punch · Click/Space shoot · 1–4 weapons · Q fare · R mission · M mute · N radio · Esc/P pause'
+    : 'W/S drive · A/D steer · E exit car · Click/Space shoot · 1–4 weapons · Q fare · R mission · M mute · N radio · Esc/P pause';
   if (hud.toastTimer > 0) {
     hud.toastTimer -= dt;
     if (hud.toastTimer <= 0) hud.toastEl.style.opacity = '0';

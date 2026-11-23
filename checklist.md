@@ -1887,3 +1887,16 @@ BIG LEAP per Arie ("nothing is impossible"): two NEW system dimensions, not poli
   JPEG ≤ 256 KiB.
 - NOT done by this builder (parent's job): push to GitHub, submit
   round 6 (needs Arie's explicit approval).
+
+## Cycle 23 — staged heli legibility (2026-11-23)
+- police.js only (staged path): heliTarget 32/14/7 when staged,
+  group scale 1.25, cone r 3.0 / opacity 0.55, beam 0.78; live
+  heli, spawn rule (wanted >= 4), toast, pursuit unchanged.
+- Harness 400/400 PASS (389 + 11 new §49). Render chase LOOKED
+  at: heli ~(480,120), big in the sky, clear of HUD; cone
+  unmistakable to the pool. 1-chase.jpg re-rendered (171,692 B,
+  sha 1186fbc0…); shots 2–4 byte-identical.
+- main.ts two runs byte-identical; dossier text 161,228 B
+  (margin 2,612 B, +381 B net). makefun check ok: true.
+- NOT done by this builder (parent's job): push to GitHub, submit
+  round 8 (needs Arie's explicit approval).

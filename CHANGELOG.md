@@ -2056,3 +2056,25 @@
   determinism: two main.ts runs byte-identical (diff -r clean).
 - NOT done by this builder (parent's job): push to GitHub, submit
   round 6 (needs Arie's explicit approval).
+
+## Cycle 23 — staged heli legibility in the chase cover (2026-11-23)
+- The heli ALREADY existed (Cycle 19); this cycle only makes it READ:
+  staged target moved closer + lower + nearer the centreline
+  (44/34/9 -> 32/14/7), staged mesh scaled 1.25x, staged cone
+  wider (r 2.2 -> 3.0) + stronger (opacity 0.35 -> 0.55) + longer
+  beam (0.62 -> 0.78 of the heli-player distance). Live heli
+  unchanged (44/34/9, faint cone); spawn rule wanted >= 4, toast,
+  pursuit behaviour, dispatch panel all untouched.
+- screenshots/1-chase.jpg RE-RENDERED ONLY (171,692 B, sha 1186fbc0…);
+  2-foot / 3-drive / 4-pause byte-identical (hashes unchanged).
+- VERIFIED: harness 400/400 PASS (389 + 11 new §49: staged spawn,
+  staged position (160,7,-206), 1.25x scale, cone r 3.0 / 0.55,
+  cone+pool in scene, air-unit toast, frame projection clear of
+  HUD panels, wanted-3 no heli / wanted-4 live heli, staged heli
+  kept at wanted 3); render LOOKED at — heli big in the sky at
+  ~(480,120), clear of the left panel / objective bar / minimap,
+  cone unmistakable down to the pool on the player; determinism:
+  two main.ts runs byte-identical; dossier text 161,228 B, margin
+  2,612 B (+381 B net). makefun check ok: true, failed: [].
+- NOT done by this builder (parent's job): push to GitHub, submit
+  round 8 (needs Arie's explicit approval).

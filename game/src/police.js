@@ -104,13 +104,17 @@ function heliTarget(G) {
   // Ahead + to the player's left: the beam then slants diagonally
   // across the chase camera's view instead of running straight down
   // the view axis (where it collapses into a faint disc).
+  // Staged (?shot=chase) sits closer + lower + nearer the centreline
+  // so the heli reads big in the cover frame; live play keeps 44/34/9.
+  const staged = G.police.heli && G.police.heli.staged;
+  const ahead = staged ? 32 : 44, side = staged ? 14 : 34, y = staged ? 7 : 9;
   const a = G.player.angle;
   const fx = Math.sin(a), fz = Math.cos(a);
   const lx = Math.cos(a), lz = -Math.sin(a);
   return {
-    x: G.player.pos.x + fx * 44 + lx * 34,
-    z: G.player.pos.z + fz * 44 + lz * 34,
-    y: 9,
+    x: G.player.pos.x + fx * ahead + lx * side,
+    z: G.player.pos.z + fz * ahead + lz * side,
+    y,
   };
 }
 
@@ -124,7 +128,7 @@ function aimCone(G) {
   // The beam stops part-way down: a full funnel to the player puts its
   // wide end 9 m from the chase camera and fills the frame as a dome.
   // The shaft + the pool disc on the player read as a spotlight instead.
-  const beamLen = len * 0.62;
+  const beamLen = len * (heli.staged ? 0.78 : 0.62);
   heli.cone.position.set(
     ax - (dx / len) * (beamLen / 2),
     ay - (dy / len) * (beamLen / 2),
@@ -141,9 +145,10 @@ function aimCone(G) {
 export function spawnHeli(G, staged = false) {
   if (G.police.heli) return G.police.heli;
   const { group, rotor } = buildHeliMesh();
+  if (staged) group.scale.setScalar(1.25);
   const cone = new THREE.Mesh(
-    new THREE.ConeGeometry(2.2, 1, 24, 1, true),
-    new THREE.MeshBasicMaterial({ color: 0xffe27a, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false }),
+    new THREE.ConeGeometry(staged ? 3.0 : 2.2, 1, 24, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xffe27a, transparent: true, opacity: staged ? 0.55 : 0.35, side: THREE.DoubleSide, depthWrite: false }),
   );
   const pool = new THREE.Mesh(
     new THREE.CircleGeometry(4.5, 24),
